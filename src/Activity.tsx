@@ -15,7 +15,20 @@ function domainOf(addr: string): string {
 // PAGINATED, SEARCHABLE log below.
 export function Activity() {
   const held = useQuery(api.activity.held);
-  const resolve = useMutation(api.activity.resolve);
+  // Optimistic: the held card vanishes the instant you click Approve/Dismiss,
+  // before the server round-trips — no perceptible delay, no reload.
+  const resolve = useMutation(api.activity.resolve).withOptimisticUpdate(
+    (store, args) => {
+      const current = store.getQuery(api.activity.held, {});
+      if (current) {
+        store.setQuery(
+          api.activity.held,
+          {},
+          current.filter((e) => e._id !== args.id),
+        );
+      }
+    },
+  );
   const {
     results: logItems,
     status,
