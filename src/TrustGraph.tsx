@@ -189,8 +189,12 @@ export function TrustGraph() {
       if (n.x === undefined || n.y === undefined) return;
       const isAgent = n.kind === "agent";
       const isHub = n.kind === "hub";
-      const trusted =
-        isAgent || isHub || n.inheritedTrust || (!n.held && n.score >= 0.55);
+      // Trust EARNED on the node's own authenticated record (solid emerald) is
+      // distinct from trust INHERITED because a hub vouches for it (muted, outline
+      // only). A vouched-for company with an F own-grade must NOT look identical
+      // to a directly-verified node — the color should match its panel.
+      const earned = !n.held && n.score >= 0.55 && n.verified > 0;
+      const inheritedOnly = !n.held && !earned && n.inheritedTrust;
       const col = n.held ? RED : EMERALD;
       const r = n.val;
 
@@ -208,10 +212,19 @@ export function TrustGraph() {
         ctx.lineWidth = 2;
         ctx.strokeStyle = `rgba(${EMERALD}, 0.95)`;
         ctx.stroke();
+      } else if (inheritedOnly) {
+        // Trusted only because a hub vouches: dark fill + emerald outline, so it
+        // reads as "vouched for, not verified on its own".
+        ctx.fillStyle = "#0b0d12";
+        ctx.fill();
+        ctx.shadowBlur = 0;
+        ctx.lineWidth = 1.5;
+        ctx.strokeStyle = `rgba(${EMERALD}, 0.7)`;
+        ctx.stroke();
       } else {
         ctx.fillStyle = n.held
           ? `rgba(${RED}, 0.85)`
-          : trusted
+          : earned
             ? `rgba(${EMERALD}, 0.85)`
             : `rgba(${GRAY}, 0.6)`;
         ctx.fill();
@@ -244,7 +257,13 @@ export function TrustGraph() {
                 : "";
       if (sub) {
         ctx.font = `700 ${10 / scale}px "JetBrains Mono", monospace`;
-        ctx.fillStyle = n.held ? `rgba(${RED}, 0.95)` : `rgba(${EMERALD}, 0.9)`;
+        // inherited-only nodes get a MUTED emerald label, matching their muted
+        // outline — distinct from the solid emerald of directly-earned trust.
+        ctx.fillStyle = n.held
+          ? `rgba(${RED}, 0.95)`
+          : inheritedOnly
+            ? `rgba(${EMERALD}, 0.55)`
+            : `rgba(${EMERALD}, 0.9)`;
         ctx.fillText(sub, n.x, n.y + r + 3 / scale + font + 1);
       }
     },
@@ -285,6 +304,11 @@ export function TrustGraph() {
           {selected.total} authenticated
         </span>
       </div>
+      {selected.inheritedTrust && selected.viaHub && selected.verified === 0 && (
+        <div className="node-detail-note">
+          own record ({selected.grade}) — trusted only via its hub, below
+        </div>
+      )}
       {selected.held ? (
         <>
           <div className="node-detail-verdict">
@@ -309,8 +333,9 @@ export function TrustGraph() {
         </div>
       ) : selected.inheritedTrust && selected.viaHub ? (
         <div className="node-detail-line">
-          Verified <span className="mono">via {selected.viaHub}</span> — recruits
-          through a hub the agent already trusts.
+          Vouched for <span className="mono">via {selected.viaHub}</span> — reaches
+          through a hub the agent already trusts, so it inherits that trust
+          (not earned on its own record yet).
         </div>
       ) : (
         <div className="node-detail-line">

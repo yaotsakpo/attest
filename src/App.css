@@ -564,6 +564,12 @@ button {
   color: var(--ink-2);
   line-height: 1.5;
 }
+.node-detail-note {
+  font-size: 10px;
+  color: var(--ink-3);
+  font-family: var(--mono);
+  margin: -2px 0 var(--space-xs);
+}
 .node-detail-held {
   border-color: var(--bad);
 }
