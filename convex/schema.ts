@@ -134,6 +134,46 @@ export default defineSchema({
     .index("by_company", ["company"])
     .index("by_hub_and_company", ["hub", "company"]),
 
+  // The user's POLICY: the structured ruleset their agent obeys before acting on
+  // their behalf. Free-form to configure in the panel, structured to store and
+  // enforce (Inbin schema pattern — no LLM in the enforcement path). One ordered
+  // list per user; first matching rule wins, so a domain-scoped rule placed
+  // above a global one overrides it. See convex/lib/policyEngine.ts.
+  policies: defineTable({
+    userId: v.id("users"),
+    rules: v.array(
+      v.object({
+        id: v.string(), // client-generated stable id (edit/remove/reorder)
+        action: v.union(
+          v.literal("reply"),
+          v.literal("payment"),
+          v.literal("share_info"),
+          v.literal("schedule"),
+          v.literal("custom"),
+        ),
+        customLabel: v.optional(v.string()), // required when action === "custom"
+        appliesTo: v.optional(v.string()), // domain scope; absent = global
+        maxAmount: v.optional(v.number()), // payment threshold; auto-act at/below
+        requireVerified: v.optional(v.boolean()),
+        minGrade: v.optional(
+          v.union(
+            v.literal("A"),
+            v.literal("B"),
+            v.literal("C"),
+            v.literal("D"),
+            v.literal("F"),
+          ),
+        ),
+        decision: v.union(
+          v.literal("allow"),
+          v.literal("hold"),
+          v.literal("deny"),
+        ),
+      }),
+    ),
+    updatedAt: v.number(),
+  }).index("by_user", ["userId"]),
+
   // AI-drafted replies awaiting human approval (approve-before-send).
   drafts: defineTable({
     userId: v.id("users"),

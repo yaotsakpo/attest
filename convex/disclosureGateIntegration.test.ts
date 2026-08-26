@@ -121,3 +121,79 @@ test("applyExtraction persists the gate decision directly (unverified + sensitiv
   expect(ev!.gateAction).toBe("hold_for_approval");
   expect(ev!.gateReason).toBeTruthy();
 });
+
+// End-to-end proof that the WIRED pipeline honors the user's own policy, not
+// just the pure engine. A verified counterpart asks for a payment; the user's
+// policy allows payments <= $500. Under-threshold auto-answers, over holds.
+async function seedPaymentPolicy(t: TestHarness, userId: Id<"users">) {
+  await t.run(async (ctx) => {
+    await ctx.db.insert("policies", {
+      userId,
+      rules: [
+        {
+          id: "pay500",
+          action: "payment",
+          maxAmount: 500,
+          requireVerified: true,
+          decision: "allow",
+        },
+      ],
+      updatedAt: Date.now(),
+    });
+  });
+}
+
+async function primeVerified(t: TestHarness, domain: string) {
+  await t.run(async (ctx) => {
+    const now = Date.now();
+    for (const at of [now - 3000, now - 2000, now - 1000]) {
+      await ctx.runMutation(internal.registry.observeDomain, {
+        domain,
+        verified: true,
+        at,
+      });
+    }
+  });
+}
+
+test("policy: verified payment UNDER the user's $500 threshold -> auto-answers", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+  await seedPaymentPolicy(t, userId);
+  await primeVerified(t, "acme.com");
+
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "pay_ok",
+    fromAddress: "billing@acme.com",
+    subject: "Invoice #204",
+    rawText: "Please remit $200 for invoice #204.",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=acme.com",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+
+  const ev = await eventByMsg(t, "pay_ok");
+  expect(ev!.senderVerified).toBe(true);
+  expect(ev!.gateAction).toBe("auto_answer");
+});
+
+test("policy: verified payment OVER the user's $500 threshold -> holds for approval", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+  await seedPaymentPolicy(t, userId);
+  await primeVerified(t, "acme.com");
+
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "pay_big",
+    fromAddress: "billing@acme.com",
+    subject: "Invoice #205",
+    rawText: "Please wire $5,000 today for invoice #205.",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=acme.com",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+
+  const ev = await eventByMsg(t, "pay_big");
+  expect(ev!.senderVerified).toBe(true);
+  expect(ev!.gateAction).toBe("hold_for_approval");
+});

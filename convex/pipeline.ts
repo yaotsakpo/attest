@@ -4,10 +4,8 @@ import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gradeFor } from "./lib/grade";
 import { domainFor } from "./lib/trustScore";
-import {
-  detectSensitiveRequest,
-  decideDisclosure,
-} from "./lib/disclosureGate";
+import { detectSensitiveRequest } from "./lib/disclosureGate";
+import { decideAction } from "./lib/policyEngine";
 
 type Stage = Doc<"applications">["stage"];
 
@@ -56,13 +54,24 @@ export const applyExtraction = internalMutation({
     const grade = domRow
       ? gradeFor(domRow.trustScore, domRow.verifiedCount, domRow.unverifiedCount)
       : "F";
-    const sensitiveRequest = detectSensitiveRequest(
-      `${ev.subject}\n${ev.rawText}`,
-    );
-    const decision = decideDisclosure({
+    const text = `${ev.subject}\n${ev.rawText}`;
+    const sensitiveRequest = detectSensitiveRequest(text);
+    // Consult the user's OWN policy first (a payment threshold, an auto-reply
+    // rule, a share_info allow…). decideAction falls back to the safe default
+    // disclosure gate when no rule matches, and never auto-releases a payment
+    // the user didn't authorize.
+    const policy = await ctx.db
+      .query("policies")
+      .withIndex("by_user", (q) => q.eq("userId", ev.userId))
+      .unique()
+      .catch(() => null);
+    const decision = decideAction({
       grade,
       senderVerified: ev.senderVerified,
       sensitiveRequest,
+      domain,
+      text,
+      rules: policy?.rules ?? [],
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
