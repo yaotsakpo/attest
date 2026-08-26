@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { Drawer } from "./Drawer";
 
 // Mirrors convex/lib/policyEngine.ts Rule (kept structural so the panel stays
 // decoupled from generated types; the save mutation validates the shape).
@@ -59,19 +60,6 @@ export function PolicyPanel({
     if (saved && !dirty) setRules(saved as Rule[]);
   }, [saved, dirty]);
 
-  // Esc closes; lock body scroll while open.
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
-
   function patch(id: string, next: Partial<Rule>) {
     setDirty(true);
     setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...next } : r)));
@@ -111,22 +99,7 @@ export function PolicyPanel({
   }
 
   return (
-    <>
-      {open && <div className="drawer-scrim" onClick={onClose} />}
-      <aside className={`drawer ${open ? "drawer-open" : ""}`} aria-hidden={!open}>
-        <div className="term-bar">
-          <span className="term-lights">
-            <span className="term-light tl-r" />
-            <span className="term-light tl-y" />
-            <span className="term-light tl-g" />
-          </span>
-          <span className="term-path">agent@warden ~ policy</span>
-          <button className="term-expand" onClick={onClose}>
-            ✕ close
-          </button>
-        </div>
-
-        <div className="drawer-body">
+    <Drawer open={open} onClose={onClose} path="agent@warden ~ policy">
           <AgentConnection />
 
           <p className="drawer-intro">
@@ -290,7 +263,6 @@ export function PolicyPanel({
           <button className="load-more drawer-add" onClick={add}>
             + Add rule
           </button>
-        </div>
 
         <div className="drawer-foot">
           <span className="drawer-hint">
@@ -304,8 +276,7 @@ export function PolicyPanel({
             Save policy
           </button>
         </div>
-      </aside>
-    </>
+    </Drawer>
   );
 }
 

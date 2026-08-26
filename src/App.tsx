@@ -3,12 +3,12 @@ import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import { Registry } from "./Registry";
 import { Board } from "./Board";
-import { Vault } from "./Vault";
 import { TrustGraph } from "./TrustGraph";
 import { NeedsYou } from "./NeedsYou";
 import { ActivityLog } from "./ActivityLog";
 import { InboxBadge } from "./InboxBadge";
 import { PolicyPanel } from "./PolicyPanel";
+import { VaultDrawer } from "./VaultDrawer";
 import "./App.css";
 
 const MIN_PASSWORD = 8;
@@ -80,8 +80,9 @@ function SignIn() {
 
 function Dashboard() {
   const { signOut } = useAuthActions();
-  const [view, setView] = useState<"home" | "vault">("home");
-  const [policyOpen, setPolicyOpen] = useState(false);
+  // Two right-side drawers (Agent + Vault), one open at a time. The dashboard
+  // grid is always the page behind them.
+  const [drawer, setDrawer] = useState<"none" | "agent" | "vault">("none");
 
   return (
     <div className="app">
@@ -93,18 +94,15 @@ function Dashboard() {
         <div className="header-actions">
           <InboxBadge />
           <button
-            className={`btn ${view === "home" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setView("home")}
-          >
-            Dashboard
-          </button>
-          <button
-            className={`btn ${view === "vault" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setView("vault")}
+            className={`btn ${drawer === "vault" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setDrawer(drawer === "vault" ? "none" : "vault")}
           >
             Vault
           </button>
-          <button className="btn btn-ghost" onClick={() => setPolicyOpen(true)}>
+          <button
+            className={`btn ${drawer === "agent" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setDrawer(drawer === "agent" ? "none" : "agent")}
+          >
             Agent
           </button>
           <button className="btn btn-ghost" onClick={() => void signOut()}>
@@ -113,25 +111,28 @@ function Dashboard() {
         </div>
       </header>
 
-      <PolicyPanel open={policyOpen} onClose={() => setPolicyOpen(false)} />
+      <PolicyPanel
+        open={drawer === "agent"}
+        onClose={() => setDrawer("none")}
+      />
+      <VaultDrawer
+        open={drawer === "vault"}
+        onClose={() => setDrawer("none")}
+      />
 
       <main>
-        {view === "home" ? (
-          <div className="grid2">
-            {/* Row 1: conversations — FULL WIDTH across both columns */}
-            <div className="span-2">
-              <Board />
-            </div>
-            {/* Row 2: registry ‖ needs-you (held + remember) */}
-            <Registry />
-            <NeedsYou />
-            {/* Row 3: activity log (history) ‖ trust map */}
-            <ActivityLog />
-            <TrustGraph />
+        <div className="grid2">
+          {/* Row 1: conversations — FULL WIDTH across both columns */}
+          <div className="span-2">
+            <Board />
           </div>
-        ) : (
-          <Vault />
-        )}
+          {/* Row 2: registry ‖ needs-you (held + remember) */}
+          <Registry />
+          <NeedsYou />
+          {/* Row 3: activity log (history) ‖ trust map */}
+          <ActivityLog />
+          <TrustGraph />
+        </div>
       </main>
     </div>
   );
