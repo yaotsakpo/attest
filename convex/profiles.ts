@@ -1,6 +1,28 @@
-import { internalQuery, internalMutation } from "./_generated/server";
+import { internalQuery, internalMutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
+
+// The signed-in user's own agent inbox (public, auth-scoped). Returns null when
+// they haven't connected one yet — the UI shows a "Connect inbox" prompt.
+export const myInbox = query({
+  args: {},
+  returns: v.union(
+    v.object({ email: v.string(), inboxId: v.string() }),
+    v.null(),
+  ),
+  handler: async (ctx): Promise<{ email: string; inboxId: string } | null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const p = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    return p
+      ? { email: p.agentmailInbox, inboxId: p.agentmailInboxId }
+      : null;
+  },
+});
 
 // Resolve which user owns a given AgentMail inbox address. Used by the inbound
 // webhook to route an incoming email to the right user. Internal: never exposed

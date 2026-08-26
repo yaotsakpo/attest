@@ -257,6 +257,34 @@ button {
   gap: var(--space-sm);
   align-items: center;
 }
+.inbox-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: 0 var(--space-md);
+  height: 34px;
+  border: 1px solid var(--term-border);
+  color: var(--ink-2);
+  font-size: var(--t-xs);
+  margin-right: var(--space-sm);
+}
+.inbox-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--good);
+}
+.inbox-connect {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  margin-right: var(--space-sm);
+}
+.inbox-err {
+  color: var(--bad);
+  font-size: var(--t-xs);
+  max-width: 200px;
+}
 
 /* --- Aligned 2-column grid ---
    Every section is a grid cell. Because it's ONE grid (not two independent

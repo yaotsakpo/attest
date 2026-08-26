@@ -6,6 +6,7 @@ import { Board } from "./Board";
 import { Vault } from "./Vault";
 import { TrustGraph } from "./TrustGraph";
 import { Activity } from "./Activity";
+import { InboxBadge } from "./InboxBadge";
 import "./App.css";
 
 const MIN_PASSWORD = 8;
@@ -87,6 +88,7 @@ function Dashboard() {
           <span className="app-tagline">the trust layer for your agent</span>
         </div>
         <div className="header-actions">
+          <InboxBadge />
           <button
             className={`btn ${view === "home" ? "btn-primary" : "btn-ghost"}`}
             onClick={() => setView("home")}
