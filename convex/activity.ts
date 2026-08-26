@@ -1,5 +1,6 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
+import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
 
@@ -15,11 +16,42 @@ export type ActivityItem = {
   createdAt: number;
 };
 
-// The agent-activity feed: what the agent did with each inbound email — answered
-// on your behalf, or held it for you because it couldn't stand behind releasing
-// your info. This is the demo's dramatic surface. Newest first.
-export const feed = query({
+const activityItem = v.object({
+  _id: v.id("events"),
+  fromAddress: v.string(),
+  subject: v.string(),
+  senderVerified: v.boolean(),
+  sensitiveRequest: v.boolean(),
+  gateAction: v.union(
+    v.literal("auto_answer"),
+    v.literal("hold_for_approval"),
+    v.null(),
+  ),
+  gateReason: v.union(v.string(), v.null()),
+  gateResolved: v.union(v.literal("approved"), v.literal("dismissed"), v.null()),
+  createdAt: v.number(),
+});
+
+function toItem(e: Doc<"events">): ActivityItem {
+  return {
+    _id: e._id,
+    fromAddress: e.fromAddress,
+    subject: e.subject,
+    senderVerified: e.senderVerified,
+    sensitiveRequest: e.sensitiveRequest ?? false,
+    gateAction: e.gateAction ?? null,
+    gateReason: e.gateReason ?? null,
+    gateResolved: e.gateResolved ?? null,
+    createdAt: e._creationTime,
+  };
+}
+
+// The items the agent HELD for the user — the dramatic surface. Bounded and
+// small by nature (held + unresolved), so no pagination needed; we read a
+// reasonable window and filter. Newest first.
+export const held = query({
   args: {},
+  returns: v.array(activityItem),
   handler: async (ctx): Promise<ActivityItem[]> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
@@ -27,18 +59,41 @@ export const feed = query({
       .query("events")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .order("desc")
-      .take(30);
-    return events.map((e) => ({
-      _id: e._id,
-      fromAddress: e.fromAddress,
-      subject: e.subject,
-      senderVerified: e.senderVerified,
-      sensitiveRequest: e.sensitiveRequest ?? false,
-      gateAction: e.gateAction ?? null,
-      gateReason: e.gateReason ?? null,
-      gateResolved: e.gateResolved ?? null,
-      createdAt: e._creationTime,
-    }));
+      .take(200);
+    return events
+      .filter((e) => e.gateAction === "hold_for_approval" && !e.gateResolved)
+      .map(toItem);
+  },
+});
+
+// The full handled log — PAGINATED. Judges can scroll a real history without
+// dumping the whole table. "Load more" driven on the client.
+export const log = query({
+  args: { paginationOpts: paginationOptsValidator },
+  returns: v.object({
+    page: v.array(activityItem),
+    isDone: v.boolean(),
+    continueCursor: v.string(),
+    splitCursor: v.optional(v.union(v.string(), v.null())),
+    pageStatus: v.optional(
+      v.union(
+        v.literal("SplitRecommended"),
+        v.literal("SplitRequired"),
+        v.null(),
+      ),
+    ),
+  }),
+  handler: async (ctx, args) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) {
+      return { page: [], isDone: true, continueCursor: "" };
+    }
+    const res = await ctx.db
+      .query("events")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .order("desc")
+      .paginate(args.paginationOpts);
+    return { ...res, page: res.page.map(toItem) };
   },
 });
 
@@ -49,6 +104,7 @@ export const resolve = mutation({
     id: v.id("events"),
     decision: v.union(v.literal("approved"), v.literal("dismissed")),
   },
+  returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;

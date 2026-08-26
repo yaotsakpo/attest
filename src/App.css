@@ -738,6 +738,74 @@ table.data.registry-cols {
   text-align: left;
 }
 
+/* table search input (in the terminal titlebar) */
+.table-search {
+  margin-left: auto;
+  background: var(--bg);
+  border: 1px solid var(--term-border);
+  color: var(--ink);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  padding: 4px 10px;
+  width: 220px;
+  max-width: 45%;
+  border-radius: 0;
+}
+.table-search:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.table-search::placeholder {
+  color: var(--ink-3);
+}
+
+/* load-more button under a paginated table */
+.load-more {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-top: 1px solid var(--term-border);
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--space-md);
+  transition: background 120ms ease;
+}
+.load-more:hover {
+  background: var(--surface-2);
+}
+.load-more.muted {
+  color: var(--ink-3);
+  cursor: default;
+}
+
+/* loading skeleton */
+.skeleton {
+  display: block;
+  height: 12px;
+  width: 70%;
+  border-radius: 2px;
+  background: linear-gradient(
+    90deg,
+    var(--surface-2) 25%,
+    var(--line-strong) 37%,
+    var(--surface-2) 63%
+  );
+  background-size: 400% 100%;
+  animation: shimmer 1.4s ease infinite;
+}
+@keyframes shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: -100% 0;
+  }
+}
+
 /* --- Pipeline board --- */
 /* board lives in a ~half-width column now → 3×2 grid of stages */
 .board {

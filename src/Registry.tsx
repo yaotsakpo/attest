@@ -2,6 +2,9 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { gradeFor } from "./grade";
+import { SkeletonRows } from "./Activity";
+
+const PAGE = 50;
 
 type SortKey = "score" | "domain" | "sightings" | "lastSeen";
 
@@ -21,6 +24,8 @@ export function Registry() {
   const domains = useQuery(api.registry.listDomains);
   const [sort, setSort] = useState<SortKey>("score");
   const [desc, setDesc] = useState(true);
+  const [q, setQ] = useState("");
+  const [shown, setShown] = useState(PAGE);
   const now = Date.now();
 
   function th(key: SortKey, label: string, extra = "") {
@@ -42,18 +47,24 @@ export function Registry() {
     );
   }
 
-  const rows = (domains ?? []).slice().sort((a, b) => {
-    let d = 0;
-    if (sort === "score") d = a.trustScore - b.trustScore;
-    else if (sort === "domain") d = a.domain.localeCompare(b.domain);
-    else if (sort === "sightings")
-      d =
-        a.verifiedCount +
-        a.unverifiedCount -
-        (b.verifiedCount + b.unverifiedCount);
-    else d = a.lastSeen - b.lastSeen;
-    return desc ? -d : d;
-  });
+  const term = q.trim().toLowerCase();
+  const all = (domains ?? [])
+    .filter((d) => !term || d.domain.toLowerCase().includes(term))
+    .slice()
+    .sort((a, b) => {
+      let d = 0;
+      if (sort === "score") d = a.trustScore - b.trustScore;
+      else if (sort === "domain") d = a.domain.localeCompare(b.domain);
+      else if (sort === "sightings")
+        d =
+          a.verifiedCount +
+          a.unverifiedCount -
+          (b.verifiedCount + b.unverifiedCount);
+      else d = a.lastSeen - b.lastSeen;
+      return desc ? -d : d;
+    });
+  const rows = all.slice(0, shown);
+  const hasMore = all.length > shown;
 
   return (
     <section className="section">
@@ -73,7 +84,16 @@ export function Registry() {
             <span className="term-light tl-g" />
           </span>
           <span className="term-path">$ GET /registry/domains</span>
-          <span className="term-tag">live</span>
+          <input
+            className="table-search"
+            placeholder="search domain…"
+            value={q}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setShown(PAGE);
+            }}
+            aria-label="Search domains"
+          />
         </div>
         <div className="term-body table-scroll">
         <table className="data registry-cols">
@@ -89,16 +109,13 @@ export function Registry() {
           </thead>
           <tbody>
             {domains === undefined ? (
-              <tr>
-                <td className="empty" colSpan={6}>
-                  Loading…
-                </td>
-              </tr>
+              <SkeletonRows cols={6} />
             ) : rows.length === 0 ? (
               <tr>
                 <td className="empty" colSpan={6}>
-                  No domains observed yet. Each sender that emails your agent
-                  earns a trust grade here.
+                  {term
+                    ? `No domains match “${q}”.`
+                    : "No domains observed yet. Each sender that emails your agent earns a trust grade here."}
                 </td>
               </tr>
             ) : (
@@ -139,6 +156,11 @@ export function Registry() {
           </tbody>
         </table>
         </div>
+        {hasMore && (
+          <button className="load-more" onClick={() => setShown(shown + PAGE)}>
+            Load more ({all.length - shown} more)
+          </button>
+        )}
       </div>
     </section>
   );
