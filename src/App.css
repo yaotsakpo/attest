@@ -527,6 +527,29 @@ button {
 .term-body {
   background: var(--term-bg);
 }
+/* Cap the dashboard table panels so a long list scrolls INSIDE the panel
+   instead of sprawling the column. Keeps the two dashboard columns balanced. */
+.term-body.table-scroll {
+  max-height: 420px;
+  overflow-y: auto;
+}
+.term-body.table-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.term-body.table-scroll::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+.term-body.table-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+/* sticky table headers so they stay while the body scrolls */
+.term-body.table-scroll thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--term-bg);
+}
 
 /* --- Registry table (hero) --- */
 .panel {
@@ -1037,6 +1060,15 @@ table.data.registry-cols {
   flex-direction: column;
   gap: var(--space-md);
   margin-bottom: var(--space-lg);
+  max-height: 340px;
+  overflow-y: auto;
+}
+.held-stack::-webkit-scrollbar {
+  width: 6px;
+}
+.held-stack::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
 }
 .held {
   display: flex;
