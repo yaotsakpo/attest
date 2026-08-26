@@ -393,7 +393,6 @@ button {
   letter-spacing: 0.02em;
 }
 .term-tag {
-  margin-left: auto;
   font-family: var(--mono);
   font-size: 10px;
   text-transform: uppercase;
@@ -402,6 +401,67 @@ button {
   border: 1px solid var(--term-border);
   border-radius: 0;
   padding: 2px 7px;
+}
+/* expand/close control in a terminal titlebar */
+.term-expand {
+  margin-left: auto;
+  background: transparent;
+  border: 1px solid var(--term-border);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.term-expand:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.term-expand + .term-tag {
+  margin-left: var(--space-sm);
+}
+
+/* fullscreen graph overlay */
+.graph-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  background: rgba(6, 8, 12, 0.82);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  padding: var(--space-2xl);
+  animation: fadeIn 180ms ease;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+}
+.graph-modal {
+  width: min(1200px, 92vw);
+  height: min(760px, 88vh);
+  display: flex;
+  flex-direction: column;
+  background: var(--term-bg);
+  border: 1px solid var(--term-border);
+}
+.graph-modal-body {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+}
+.graph-hint {
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--ink-3);
+  text-align: center;
+  padding: var(--space-sm);
+  border-top: 1px solid var(--term-border);
 }
 .term-body {
   background: var(--term-bg);
