@@ -109,5 +109,34 @@ export const sendReply = internalAction({
   },
 });
 
+// Compose + send the agent's reply for one event, then mark it sent. Called on
+// auto-answer (verified counterpart) and on user approval of a held item.
+// No-ops safely if there's no API key or the event lacks AgentMail ids (so the
+// simulated demo path never errors).
+export const sendAgentReply = internalAction({
+  args: { eventId: v.id("events"), kind: v.union(v.literal("auto"), v.literal("approved")) },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const ev = await ctx.runQuery(internal.events.getRaw, {
+      eventId: args.eventId,
+    });
+    if (!ev || !ev.agentmailInboxId || !process.env.AGENTMAIL_API_KEY) {
+      return null;
+    }
+    // A short, honest reply. Auto-answers acknowledge; approved replies confirm
+    // the user authorized sharing. (We never auto-compose sensitive values.)
+    const text =
+      args.kind === "auto"
+        ? "Thanks for your message — this is handled by my assistant. I've noted it and will follow up shortly."
+        : "Thanks — I've reviewed and approved your request. I'll follow up with the details separately.";
+    await ctx.runAction(internal.agentmail.sendReply, {
+      inboxId: ev.agentmailInboxId,
+      messageId: ev.agentmailMsgId,
+      text,
+    });
+    return null;
+  },
+});
+
 // `process.env` is available at Convex runtime; declared for the editor.
 declare const process: { env: Record<string, string | undefined> };

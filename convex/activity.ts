@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -111,6 +112,13 @@ export const resolve = mutation({
     const ev = await ctx.db.get("events", args.id);
     if (!ev || ev.userId !== userId) return null;
     await ctx.db.patch("events", args.id, { gateResolved: args.decision });
+    // On approval, the agent actually sends the reply via AgentMail.
+    if (args.decision === "approved") {
+      await ctx.scheduler.runAfter(0, internal.agentmail.sendAgentReply, {
+        eventId: args.id,
+        kind: "approved",
+      });
+    }
     return null;
   },
 });

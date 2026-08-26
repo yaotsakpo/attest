@@ -1,4 +1,5 @@
 import { internalMutation } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
 import { gradeFor } from "./lib/grade";
@@ -37,6 +38,7 @@ function normalize(company: string): string {
 // but may NOT push a card to "offer".
 export const applyExtraction = internalMutation({
   args: { eventId: v.id("events"), extracted: v.any() },
+  returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const ev = await ctx.db.get("events", args.eventId);
     if (!ev) return null;
@@ -67,6 +69,14 @@ export const applyExtraction = internalMutation({
       gateAction: decision.action,
       gateReason: decision.reason,
     });
+    // On auto-answer (verified counterpart, routine request), the agent replies
+    // for you via AgentMail. Held items wait for approval (see activity.resolve).
+    if (decision.action === "auto_answer") {
+      await ctx.scheduler.runAfter(0, internal.agentmail.sendAgentReply, {
+        eventId: args.eventId,
+        kind: "auto",
+      });
+    }
 
     const ex = (args.extracted ?? {}) as {
       company?: string | null;
@@ -157,6 +167,7 @@ export const applyExtraction = internalMutation({
 // Firecrawl enrichment writer (Task 8) — patch enrichment onto an application.
 export const setEnrichment = internalMutation({
   args: { applicationId: v.id("applications"), enrichment: v.any() },
+  returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     await ctx.db.patch("applications", args.applicationId, {
       enrichment: args.enrichment,
