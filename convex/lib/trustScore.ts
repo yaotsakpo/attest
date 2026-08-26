@@ -31,3 +31,11 @@ export function domainFor(
   const fm = fromAddress.trim().toLowerCase().match(/@([^>\s]+)/);
   return fm ? fm[1]! : "";
 }
+
+// The raw From-address domain, ignoring the auth header. Used for hub detection:
+// when this differs from `domainFor(...)` (the authenticated domain) on a
+// DMARC-pass email, the From-domain is a company reached THROUGH the hub.
+export function fromDomainOf(fromAddress: string): string {
+  const fm = fromAddress.trim().toLowerCase().match(/@([^>\s]+)/);
+  return fm ? fm[1]! : "";
+}

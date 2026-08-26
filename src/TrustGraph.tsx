@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import ForceGraph2D from "react-force-graph-2d";
 import { api } from "../convex/_generated/api";
-import { gradeFor } from "./grade";
 
 // Trust-map on react-force-graph-2d. Dense constellation aesthetic (like
 // emmanueltsakpo.click): faint white ambient nodes for atmosphere + the REAL
@@ -15,12 +14,17 @@ const RED = "248, 113, 113"; // #f87171 — held / withheld (danger, used sparin
 
 type GNode = {
   id: string;
-  kind: "hub" | "domain" | "ambient";
+  kind: "hub" | "hubnode" | "domain" | "ambient"; // hub = the agent; hubnode = an ATS hub
   label?: string;
   score?: number;
   grade?: string;
   verified?: number;
   total?: number;
+  isHub?: boolean;
+  companyKind?: "hub" | "company" | "direct";
+  viaHub?: string | null;
+  inheritedTrust?: boolean;
+  hubCompanyCount?: number;
   held?: boolean;
   askedSensitive?: boolean;
   heldSubject?: string | null;
@@ -38,6 +42,10 @@ type Selected = {
   askedSensitive: boolean;
   heldSubject: string | null;
   reason: string | null;
+  isAts: boolean;
+  hubCompanyCount: number;
+  viaHub: string | null;
+  inheritedTrust: boolean;
 } | null;
 
 // deterministic pseudo-random so ambient layout is stable across renders
@@ -47,7 +55,8 @@ function seeded(i: number) {
 }
 
 export function TrustGraph() {
-  const domains = useQuery(api.registry.domainsWithDecisions);
+  const tg = useQuery(api.registry.trustGraph);
+  const decisions = useQuery(api.registry.domainsWithDecisions);
   const wrapRef = useRef<HTMLDivElement | null>(null);
   const fgRef = useRef<any>(null);
   const [size, setSize] = useState({ w: 600, h: 300 });
@@ -78,7 +87,13 @@ export function TrustGraph() {
 
   const graph = useMemo(() => {
     const nodes: GNode[] = [];
-    const links: { source: string; target: string; real: boolean; held?: boolean }[] = [];
+    const links: {
+      source: string;
+      target: string;
+      real: boolean;
+      held?: boolean;
+      hubEdge?: boolean;
+    }[] = [];
 
     // ambient constellation (atmosphere) — faint white nodes, loosely linked
     const AMB = 46;
@@ -90,53 +105,80 @@ export function TrustGraph() {
         bright: 0.12 + seeded(i + 99) * 0.28,
       });
     }
-    // sparse ambient mesh
     for (let i = 0; i < AMB; i++) {
       const t = Math.floor(seeded(i + 7) * AMB);
       if (t !== i) links.push({ source: `amb${i}`, target: `amb${t}`, real: false });
     }
 
-    const data = domains ?? [];
-    if (data.length > 0) {
-      nodes.push({ id: "__hub__", kind: "hub", label: "your agent", val: 7, bright: 1 });
-      // tether hub loosely into the ambient field so it sits amid the mesh
-      links.push({ source: "__hub__", target: "amb0", real: false });
-      for (const d of data) {
-        const g = gradeFor(d.trustScore, d.verifiedCount, d.unverifiedCount);
+    const g = tg;
+    if (g && g.nodes.length > 0) {
+      // gate story per domain (held / sensitive), keyed by domain
+      const dec = new Map(
+        (decisions ?? []).map((d) => [d.domain, d]),
+      );
+
+      nodes.push({ id: "__agent__", kind: "hub", label: "your agent", val: 8, bright: 1 });
+      links.push({ source: "__agent__", target: "amb0", real: false });
+
+      for (const nd of g.nodes) {
+        const story = dec.get(nd.id);
+        const held = !!story?.held;
+        // kind mapping: hub → its own tier; company (behind a hub) → tethered to
+        // its hub; direct → straight off the agent.
+        const kind: GNode["kind"] =
+          nd.kind === "hub" ? "hubnode" : "domain";
         nodes.push({
-          id: d.domain,
-          kind: "domain",
-          label: d.domain,
-          score: d.trustScore,
-          grade: g,
-          verified: d.verifiedCount,
-          total: d.verifiedCount + d.unverifiedCount,
-          held: d.held,
-          askedSensitive: d.askedSensitive,
-          heldSubject: d.heldSubject,
-          reason: d.reason,
-          val: 3 + d.trustScore * 7,
-          bright: 0.5 + d.trustScore * 0.5,
+          id: nd.id,
+          kind,
+          label: nd.id,
+          score: nd.trustScore,
+          grade: nd.grade,
+          verified: nd.verifiedCount,
+          total: nd.verifiedCount + nd.unverifiedCount,
+          isHub: nd.kind === "hub",
+          companyKind: nd.kind, // "hub" | "company" | "direct"
+          viaHub: nd.viaHub,
+          inheritedTrust: nd.inheritedTrust,
+          hubCompanyCount: nd.hubCompanyCount,
+          held,
+          askedSensitive: !!story?.askedSensitive,
+          heldSubject: story?.heldSubject ?? null,
+          reason: story?.reason ?? null,
+          val:
+            nd.kind === "hub"
+              ? 6 + Math.min(nd.hubCompanyCount, 4) * 1.2
+              : 3 + nd.trustScore * 6,
+          bright: nd.kind === "company" && nd.inheritedTrust ? 0.7 : 0.5 + nd.trustScore * 0.5,
         });
-        // held senders are kept at arm's length: a longer, fainter, "severed"
-        // tether — you can SEE the agent not trusting it.
-        links.push({ source: "__hub__", target: d.domain, real: true, held: d.held });
+        // agent connects to hubs + direct domains (top-level)
+        if (nd.connectsToAgent) {
+          links.push({
+            source: "__agent__",
+            target: nd.id,
+            real: true,
+            held,
+            hubEdge: nd.kind === "hub",
+          });
+        }
+      }
+      // hub → company edges
+      for (const e of g.edges) {
+        links.push({ source: e.source, target: e.target, real: true, hubEdge: true });
       }
     }
     return { nodes, links };
-  }, [domains]);
+  }, [tg, decisions]);
 
   useEffect(() => {
     const fg = fgRef.current;
     if (!fg) return;
-    fg.d3Force("charge")?.strength(-60);
-    // held senders sit farther out — the agent keeps them at arm's length
+    fg.d3Force("charge")?.strength(-90);
     fg.d3Force("link")?.distance((l: any) =>
-      !l.real ? 40 : l.held ? 130 : 65,
+      !l.real ? 40 : l.held ? 130 : l.hubEdge ? 55 : 75,
     );
   }, [graph, expanded]);
 
-  const count = domains?.length ?? 0;
+  const count = tg?.nodes.length ?? 0;
 
   const drawNode = (node: any, ctx: CanvasRenderingContext2D) => {
     const n = node as GNode & { x: number; y: number };
@@ -147,19 +189,36 @@ export function TrustGraph() {
       ctx.fill();
       return;
     }
-    const isHub = n.kind === "hub";
+    const isAgent = n.kind === "hub";
+    const isAts = n.kind === "hubnode";
     const held = n.kind === "domain" && n.held;
+    // companies reached via a trusted hub read emerald (inherited trust) even
+    // though their OWN grade is unproven — the graph shows the vouch.
+    const trusted = isAgent || isAts || n.inheritedTrust || (!held && (n.score ?? 0) >= 0.55);
     const color = held ? RED : EMERALD;
-    ctx.shadowColor = isHub ? "rgba(255,255,255,0.9)" : `rgb(${color})`;
-    ctx.shadowBlur = isHub ? 16 : held ? 6 : 8 + n.bright * 10;
+
+    ctx.shadowColor = isAgent ? "rgba(255,255,255,0.9)" : `rgb(${color})`;
+    ctx.shadowBlur = isAgent ? 16 : held ? 6 : 8 + n.bright * 10;
     ctx.beginPath();
     ctx.arc(n.x, n.y, n.val, 0, Math.PI * 2);
-    ctx.fillStyle = isHub
-      ? "#f3f4f6"
-      : held
+    if (isAgent) {
+      ctx.fillStyle = "#f3f4f6";
+    } else if (isAts) {
+      // ATS hub: a hollow emerald ring (intermediary, distinct from companies)
+      ctx.fillStyle = "rgba(11,13,18,1)";
+      ctx.fill();
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = `rgba(${EMERALD}, 0.95)`;
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    } else {
+      ctx.fillStyle = held
         ? `rgba(${RED}, 0.85)`
-        : `rgba(${EMERALD}, ${0.55 + n.bright * 0.45})`;
-    ctx.fill();
+        : trusted
+          ? `rgba(${EMERALD}, ${0.55 + n.bright * 0.45})`
+          : `rgba(156,163,175,${0.4 + n.bright * 0.3})`;
+    }
+    if (!isAts) ctx.fill();
     ctx.shadowBlur = 0;
     // a held sender that asked for sensitive info gets a warning ring
     if (held && n.askedSensitive) {
@@ -173,24 +232,31 @@ export function TrustGraph() {
     ctx.font = `11px "JetBrains Mono", monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "top";
-    ctx.fillStyle = isHub ? "rgba(243,244,246,0.95)" : "rgba(156,163,175,0.9)";
+    ctx.fillStyle = isAgent ? "rgba(243,244,246,0.95)" : "rgba(156,163,175,0.9)";
     ctx.fillText(n.label ?? "", n.x, n.y + n.val + 4);
-    if (n.kind === "domain") {
-      ctx.fillStyle = held
-        ? `rgba(${RED}, 0.95)`
-        : `rgba(${EMERALD}, ${0.7 + n.bright * 0.3})`;
-      ctx.font = `700 11px "JetBrains Mono", monospace`;
-      ctx.fillText(
-        held ? "HELD" : `${Math.round((n.score ?? 0) * 100)}`,
-        n.x,
-        n.y + n.val + 18,
-      );
+
+    // sub-label (score / HELD / via-hub / hub company-count)
+    ctx.font = `700 10px "JetBrains Mono", monospace`;
+    if (isAts) {
+      ctx.fillStyle = `rgba(${EMERALD}, 0.9)`;
+      ctx.fillText(`ATS · ${n.hubCompanyCount ?? 0} cos`, n.x, n.y + n.val + 18);
+    } else if (n.kind === "domain") {
+      if (held) {
+        ctx.fillStyle = `rgba(${RED}, 0.95)`;
+        ctx.fillText("HELD", n.x, n.y + n.val + 18);
+      } else if (n.inheritedTrust && n.viaHub) {
+        ctx.fillStyle = `rgba(${EMERALD}, 0.85)`;
+        ctx.fillText(`via ${n.viaHub}`, n.x, n.y + n.val + 18);
+      } else {
+        ctx.fillStyle = `rgba(${EMERALD}, ${0.7 + n.bright * 0.3})`;
+        ctx.fillText(`${Math.round((n.score ?? 0) * 100)}`, n.x, n.y + n.val + 18);
+      }
     }
   };
 
   const onClick = (node: any) => {
     const n = node as GNode;
-    if (n.kind === "domain") {
+    if (n.kind === "domain" || n.kind === "hubnode") {
       setSelected({
         domain: n.label ?? n.id,
         score: n.score ?? 0,
@@ -201,8 +267,12 @@ export function TrustGraph() {
         askedSensitive: !!n.askedSensitive,
         heldSubject: n.heldSubject ?? null,
         reason: n.reason ?? null,
+        isAts: n.kind === "hubnode",
+        hubCompanyCount: n.hubCompanyCount ?? 0,
+        viaHub: n.viaHub ?? null,
+        inheritedTrust: !!n.inheritedTrust,
       });
-    } else if (n.kind === "hub") {
+    } else {
       setSelected(null);
     }
   };
@@ -288,6 +358,19 @@ export function TrustGraph() {
               "The agent couldn’t verify this sender, so it released nothing and held the message for you."}
           </div>
         </>
+      ) : selected.isAts ? (
+        <div className="node-detail-line">
+          Recruiting hub (ATS). {selected.hubCompanyCount} compan
+          {selected.hubCompanyCount === 1 ? "y recruits" : "ies recruit"} through
+          it. Because this hub is verified, the agent trusts the companies it
+          vouches for.
+        </div>
+      ) : selected.inheritedTrust && selected.viaHub ? (
+        <div className="node-detail-line">
+          Verified <span className="mono">via {selected.viaHub}</span> — this
+          company recruits through a hub the agent already trusts, so its mail is
+          trusted even before it sends direct.
+        </div>
       ) : (
         <div className="node-detail-line">
           Verified sender — the agent answers on your behalf automatically.

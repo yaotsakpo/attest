@@ -97,7 +97,33 @@ export default defineSchema({
     trustScore: v.number(), // derived 0..1, monotonic-ish reputation
     firstSeen: v.number(),
     lastSeen: v.number(),
+    // Trust-transfer flags. `isHub` = this domain has authenticated on behalf of
+    // >=1 DISTINCT other (company) From-domain — i.e. it's an ATS intermediary
+    // (greenhouse.io, lever.co, workday.com...). `hubCompanyCount` is how many
+    // distinct companies we've seen reach recruits through it. Both are derived
+    // from the `domainEdges` table and kept in sync in the same mutation.
+    isHub: v.optional(v.boolean()),
+    hubCompanyCount: v.optional(v.number()),
   }).index("by_domain", ["domain"]),
+
+  // The trust GRAPH's edges: one row per (hub -> company) relationship, learned
+  // from from/auth mismatches on DMARC-pass mail. When `recruiter@acme.com`
+  // authenticates as `greenhouse.io`, that IS a relationship: Acme recruits
+  // THROUGH Greenhouse. We store the many-to-many as its own table (never as an
+  // unbounded array on the domain doc). `count` = how many such sightings,
+  // `verifiedVia` = the hub passed DMARC on at least one sighting (so it can
+  // vouch). Idempotent per (hub, company): upserted, not appended.
+  domainEdges: defineTable({
+    hub: v.string(), // the authenticated (intermediary) domain — greenhouse.io
+    company: v.string(), // the From-address domain reached through it — acme.com
+    count: v.number(), // # of mismatch sightings for this pair
+    verifiedVia: v.boolean(), // hub authenticated (DMARC pass) on >=1 sighting
+    firstSeen: v.number(),
+    lastSeen: v.number(),
+  })
+    .index("by_hub", ["hub"])
+    .index("by_company", ["company"])
+    .index("by_hub_and_company", ["hub", "company"]),
 
   // AI-drafted replies awaiting human approval (approve-before-send).
   drafts: defineTable({
