@@ -805,6 +805,20 @@ table.data.registry-cols {
     background-position: -100% 0;
   }
 }
+.card-skeleton {
+  gap: var(--space-sm);
+  pointer-events: none;
+}
+.card-skeleton .skeleton {
+  width: 80%;
+}
+.board-empty {
+  border: 1px dashed var(--dash);
+  padding: var(--space-2xl);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  text-align: center;
+}
 
 /* --- Pipeline board --- */
 /* board lives in a ~half-width column now → 3×2 grid of stages */

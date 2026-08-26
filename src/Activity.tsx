@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useCallback, useState } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import { useInfiniteScroll } from "./useInfiniteScroll";
 
 function domainOf(addr: string): string {
   const m = addr.match(/@(.+)$/);
@@ -28,6 +29,12 @@ export function Activity() {
           e.subject.toLowerCase().includes(term),
       )
     : logItems;
+
+  // lazy-load more as the sentinel scrolls into view (disabled while searching,
+  // since search filters the already-loaded set)
+  const canLoad = status === "CanLoadMore" && !term;
+  const loadNext = useCallback(() => loadMore(25), [loadMore]);
+  const sentinel = useInfiniteScroll(canLoad, loadNext);
 
   return (
     <section className="section">
@@ -137,10 +144,13 @@ export function Activity() {
             </tbody>
           </table>
         </div>
-        {status === "CanLoadMore" && !term && (
-          <button className="load-more" onClick={() => loadMore(25)}>
-            Load more
-          </button>
+        {canLoad && (
+          <>
+            <div ref={sentinel} aria-hidden="true" />
+            <button className="load-more" onClick={loadNext}>
+              Load more
+            </button>
+          </>
         )}
         {status === "LoadingMore" && <div className="load-more muted">Loading…</div>}
       </div>

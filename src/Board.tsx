@@ -46,12 +46,24 @@ export function Board() {
         </span>
       </div>
       {apps === undefined ? (
-        <p className="muted">Loading…</p>
+        <div className="board">
+          {STAGES.map((stage) => (
+            <div key={stage.key} className="column">
+              <div className="column-title">
+                <span>{stage.label}</span>
+              </div>
+              <div className="card card-skeleton">
+                <span className="skeleton" />
+                <span className="skeleton" style={{ width: "45%" }} />
+              </div>
+            </div>
+          ))}
+        </div>
       ) : apps.length === 0 ? (
-        <p className="muted">
+        <div className="board-empty">
           No applications yet. When a recruiter emails your agent, a card appears
           here on its own.
-        </p>
+        </div>
       ) : (
         <div className="board">
           {STAGES.map((stage) => {
