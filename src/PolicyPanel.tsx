@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../convex/_generated/api";
 
 // Mirrors convex/lib/policyEngine.ts Rule (kept structural so the panel stays
@@ -127,6 +127,8 @@ export function PolicyPanel({
         </div>
 
         <div className="drawer-body">
+          <AgentConnection />
+
           <p className="drawer-intro">
             Rules your agent follows before it acts for you. Checked top to
             bottom, first match wins. Anything no rule allows is held for you.
@@ -304,5 +306,92 @@ export function PolicyPanel({
         </div>
       </aside>
     </>
+  );
+}
+
+// The agent's email identity, folded into the top of the drawer next to the
+// rules that govern it. Shows the inbox address (Warden auto-provisions it — no
+// key to paste), and a non-destructive "re-link" that re-registers the inbound
+// webhook if mail ever stopped flowing. Reconnect never mints a new inbox, which
+// would orphan your address and its history.
+function AgentConnection() {
+  const inbox = useQuery(api.profiles.myInbox);
+  const provision = useAction(api.agentmail.provisionInbox);
+  const relinkAction = useAction(api.agentmail.relinkWebhook);
+  const [busy, setBusy] = useState(false);
+  const [note, setNote] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
+
+  async function connect() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await provision();
+      if (!res) setNote("Couldn’t connect — is AgentMail configured?");
+    } finally {
+      setBusy(false);
+    }
+  }
+  async function relink() {
+    setBusy(true);
+    setNote(null);
+    try {
+      const res = await relinkAction();
+      setNote(res?.ok ? "Re-linked. Inbound mail flows to your dashboard." : "Re-link failed.");
+      setTimeout(() => setNote(null), 2600);
+    } finally {
+      setBusy(false);
+    }
+  }
+  function copy() {
+    if (!inbox) return;
+    void navigator.clipboard.writeText(inbox.email);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1400);
+  }
+
+  return (
+    <div className="agent-conn">
+      <div className="agent-conn-head">
+        <span className="agent-conn-label">Agent inbox</span>
+        {inbox && (
+          <span className="status status-verified">
+            <span className="dot" /> connected
+          </span>
+        )}
+      </div>
+
+      {inbox === undefined ? (
+        <span className="agent-conn-addr dim">Loading…</span>
+      ) : inbox ? (
+        <>
+          <div className="agent-conn-addr">
+            <span className="inbox-dot" />
+            <span className="mono">{inbox.email}</span>
+            <button className="mini-btn" onClick={copy} disabled={busy}>
+              {copied ? "copied" : "copy"}
+            </button>
+            <button className="mini-btn" onClick={() => void relink()} disabled={busy}>
+              {busy ? "…" : "re-link"}
+            </button>
+          </div>
+          <p className="agent-conn-hint">
+            Send email here and it appears in your dashboard in seconds. Re-link
+            only if inbound ever stops — it repairs the webhook without changing
+            your address.
+          </p>
+        </>
+      ) : (
+        <button
+          className="btn btn-primary"
+          onClick={() => void connect()}
+          disabled={busy}
+        >
+          {busy ? "Connecting…" : "Connect inbox"}
+        </button>
+      )}
+
+      {note && <div className="agent-conn-note">{note}</div>}
+    </div>
   );
 }

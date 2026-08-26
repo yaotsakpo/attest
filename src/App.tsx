@@ -8,7 +8,6 @@ import { TrustGraph } from "./TrustGraph";
 import { NeedsYou } from "./NeedsYou";
 import { ActivityLog } from "./ActivityLog";
 import { InboxBadge } from "./InboxBadge";
-import { Settings } from "./Settings";
 import { PolicyPanel } from "./PolicyPanel";
 import "./App.css";
 
@@ -81,7 +80,7 @@ function SignIn() {
 
 function Dashboard() {
   const { signOut } = useAuthActions();
-  const [view, setView] = useState<"home" | "vault" | "settings">("home");
+  const [view, setView] = useState<"home" | "vault">("home");
   const [policyOpen, setPolicyOpen] = useState(false);
 
   return (
@@ -106,13 +105,7 @@ function Dashboard() {
             Vault
           </button>
           <button className="btn btn-ghost" onClick={() => setPolicyOpen(true)}>
-            Policy
-          </button>
-          <button
-            className={`btn ${view === "settings" ? "btn-primary" : "btn-ghost"}`}
-            onClick={() => setView("settings")}
-          >
-            Settings
+            Agent
           </button>
           <button className="btn btn-ghost" onClick={() => void signOut()}>
             Sign out
@@ -136,10 +129,8 @@ function Dashboard() {
             <ActivityLog />
             <TrustGraph />
           </div>
-        ) : view === "vault" ? (
-          <Vault />
         ) : (
-          <Settings />
+          <Vault />
         )}
       </main>
     </div>

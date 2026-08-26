@@ -84,6 +84,43 @@ export const provisionInbox = action({
   },
 });
 
+// Re-link the inbound webhook for the signed-in user's existing inbox. This is
+// the honest "reconnect": it does NOT mint a new inbox (that would orphan your
+// address and its history) — it re-registers the webhook so inbound mail flows
+// again if it ever stopped. Idempotent via the per-user hook client_id.
+export const relinkWebhook = action({
+  args: {},
+  returns: v.union(v.object({ ok: v.boolean() }), v.null()),
+  handler: async (ctx): Promise<{ ok: boolean } | null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    if (!process.env.AGENTMAIL_API_KEY) return null;
+    const existing = await ctx.runQuery(internal.profiles.byUser, { userId });
+    if (!existing) return { ok: false };
+    const site = process.env.CONVEX_SITE_URL;
+    try {
+      const res = await fetch(
+        `${BASE}/inboxes/${existing.agentmailInboxId}/webhooks`,
+        {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({
+            url: `${site}/webhooks/agentmail`,
+            event_types: [
+              "message.received",
+              "message.received.unauthenticated",
+            ],
+            client_id: `warden-hook-${userId}`,
+          }),
+        },
+      );
+      return { ok: res.ok };
+    } catch {
+      return { ok: false };
+    }
+  },
+});
+
 // Send an outbound reply in-thread via AgentMail. Called when the agent
 // auto-answers a verified counterpart, or when the user approves a held item.
 export const sendReply = internalAction({
