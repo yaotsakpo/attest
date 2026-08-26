@@ -1,6 +1,7 @@
 import { useCallback, useState } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { ExpandablePanel } from "./ExpandablePanel";
 
@@ -29,6 +30,27 @@ export function Activity() {
       }
     },
   );
+  const remember = useMutation(api.policy.rememberDecision);
+  // After an Approve, offer to turn that one-off into a standing policy rule.
+  // The card is gone (optimistic), so we surface a small prompt referencing the
+  // item the user just approved.
+  const [justApproved, setJustApproved] = useState<{
+    id: Id<"events">;
+    domain: string;
+  } | null>(null);
+  const [remembered, setRemembered] = useState(false);
+
+  function approve(e: { _id: Id<"events">; fromAddress: string }) {
+    void resolve({ id: e._id, decision: "approved" });
+    setRemembered(false);
+    setJustApproved({ id: e._id, domain: domainOf(e.fromAddress) });
+  }
+  async function doRemember() {
+    if (!justApproved) return;
+    await remember({ eventId: justApproved.id });
+    setRemembered(true);
+    setTimeout(() => setJustApproved(null), 2200);
+  }
   const {
     results: logItems,
     status,
@@ -78,6 +100,33 @@ export function Activity() {
           />
         }
       >
+      {justApproved && (
+        <div className="remember-prompt">
+          {remembered ? (
+            <span className="remember-done">
+              ✓ Saved. Your agent will auto-approve this from{" "}
+              <b>{justApproved.domain}</b> next time.
+            </span>
+          ) : (
+            <>
+              <span>
+                Approved. Always allow this from <b>{justApproved.domain}</b>?
+              </span>
+              <span className="remember-actions">
+                <button className="btn btn-primary" onClick={() => void doRemember()}>
+                  Remember this
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  onClick={() => setJustApproved(null)}
+                >
+                  Just this once
+                </button>
+              </span>
+            </>
+          )}
+        </div>
+      )}
       {held && held.length > 0 && (
         <div className="held-stack">
           {held.map((e) => (
@@ -96,7 +145,7 @@ export function Activity() {
               <div className="held-actions">
                 <button
                   className="btn btn-primary"
-                  onClick={() => void resolve({ id: e._id, decision: "approved" })}
+                  onClick={() => approve(e)}
                 >
                   Approve
                 </button>
@@ -138,18 +187,16 @@ export function Activity() {
               ) : (
                 filtered.map((e) => {
                   const auto = e.gateAction === "auto_answer";
-                  // The DECISION reflects the CURRENT state, not the frozen
-                  // original action. A held item you've since approved reads
-                  // "released"; dismissed reads "dismissed"; only an unresolved
-                  // hold still reads "held". This keeps the table consistent
-                  // with the graph (which shows live unresolved state).
-                  const decision = auto
-                    ? { label: "auto-answered", cls: "gate-auto" }
-                    : e.gateResolved === "approved"
-                      ? { label: "released", cls: "gate-auto" }
+                  // The DECISION tells the WHOLE story: an auto-answer is one
+                  // badge; a held item that you later resolved shows BOTH facts —
+                  // it was "held", then "approved"/"dismissed" by you — so the
+                  // history is legible and consistent with the live graph state.
+                  const resolvedBadge =
+                    e.gateResolved === "approved"
+                      ? { label: "approved", cls: "gate-auto" }
                       : e.gateResolved === "dismissed"
                         ? { label: "dismissed", cls: "gate-dismissed" }
-                        : { label: "held", cls: "gate-hold" };
+                        : null;
                   const status = auto
                     ? "sent"
                     : e.gateResolved === "approved"
@@ -160,9 +207,21 @@ export function Activity() {
                   return (
                     <tr key={e._id}>
                       <td>
-                        <span className={`gate ${decision.cls}`}>
-                          {decision.label}
-                        </span>
+                        {auto ? (
+                          <span className="gate gate-auto">auto-answered</span>
+                        ) : (
+                          <span className="decision-pair">
+                            <span className="gate gate-hold">held</span>
+                            {resolvedBadge && (
+                              <>
+                                <span className="decision-arrow">→</span>
+                                <span className={`gate ${resolvedBadge.cls}`}>
+                                  {resolvedBadge.label}
+                                </span>
+                              </>
+                            )}
+                          </span>
+                        )}
                       </td>
                       <td className="m">{domainOf(e.fromAddress)}</td>
                       <td>{e.subject || "(no subject)"}</td>

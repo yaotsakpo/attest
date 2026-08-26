@@ -81,6 +81,88 @@ test("policies are isolated: user B can't read or overwrite user A's policy", as
   expect(aliceRules[0].action).toBe("payment");
 });
 
+test("rememberDecision appends a domain-scoped allow rule matching the held item's action", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+
+  // A held payment event from acme.com.
+  const eventId = await t.run(async (ctx) =>
+    ctx.db.insert("events", {
+      userId,
+      agentmailMsgId: "pay_held",
+      fromAddress: "billing@acme.com",
+      subject: "Invoice #9",
+      rawText: "Please remit $250 for invoice #9.",
+      senderVerified: true,
+      registryDomain: "acme.com",
+      sensitiveRequest: false,
+      gateAction: "hold_for_approval",
+      gateResolved: "approved",
+    }),
+  );
+
+  await asUser(t, userId).mutation(api.policy.rememberDecision, { eventId });
+
+  const rules = await asUser(t, userId).query(api.policy.get, {});
+  expect(rules).toHaveLength(1);
+  expect(rules[0].action).toBe("payment");
+  expect(rules[0].appliesTo).toBe("acme.com");
+  expect(rules[0].decision).toBe("allow");
+});
+
+test("rememberDecision is idempotent-ish: no duplicate rule for the same action+domain", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+  const mk = async (msg: string) =>
+    t.run(async (ctx) =>
+      ctx.db.insert("events", {
+        userId,
+        agentmailMsgId: msg,
+        fromAddress: "billing@acme.com",
+        subject: "Invoice",
+        rawText: "Please remit $10.",
+        senderVerified: true,
+        registryDomain: "acme.com",
+        sensitiveRequest: false,
+        gateAction: "hold_for_approval",
+        gateResolved: "approved",
+      }),
+    );
+
+  await asUser(t, userId).mutation(api.policy.rememberDecision, {
+    eventId: await mk("m1"),
+  });
+  await asUser(t, userId).mutation(api.policy.rememberDecision, {
+    eventId: await mk("m2"),
+  });
+  const rules = await asUser(t, userId).query(api.policy.get, {});
+  expect(rules).toHaveLength(1); // same action+domain → not duplicated
+});
+
+test("rememberDecision enforces ownership: can't remember another user's event", async () => {
+  const t = convexTest(schema, modules);
+  const owner = await seedUser(t);
+  const attacker = await seedUser(t);
+  const eventId = await t.run(async (ctx) =>
+    ctx.db.insert("events", {
+      userId: owner,
+      agentmailMsgId: "owned",
+      fromAddress: "billing@acme.com",
+      subject: "Invoice",
+      rawText: "Please remit $10.",
+      senderVerified: true,
+      registryDomain: "acme.com",
+      sensitiveRequest: false,
+      gateAction: "hold_for_approval",
+      gateResolved: "approved",
+    }),
+  );
+  await asUser(t, attacker).mutation(api.policy.rememberDecision, { eventId });
+  // attacker's policy stays empty; owner's untouched
+  expect(await asUser(t, attacker).query(api.policy.get, {})).toEqual([]);
+  expect(await asUser(t, owner).query(api.policy.get, {})).toEqual([]);
+});
+
 test("signed-out get returns [] and save is a no-op", async () => {
   const t = convexTest(schema, modules);
   expect(await t.query(api.policy.get, {})).toEqual([]);

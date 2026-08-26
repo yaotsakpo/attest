@@ -1,7 +1,8 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import type { Rule } from "./lib/policyEngine";
+import { classifyRequest, type Rule, type RuleAction } from "./lib/policyEngine";
+import { fromDomainOf } from "./lib/trustScore";
 
 // The validator for one policy rule, shared by get + save so the wire shape and
 // the stored shape stay in lock-step with the schema.
@@ -74,6 +75,64 @@ export const save = mutation({
         rules: args.rules,
         updatedAt: now,
       });
+    }
+    return null;
+  },
+});
+
+// "Remember this decision." Turn a one-off approval of a held item into a
+// standing rule: always ALLOW this action from this counterpart's domain. The
+// action is classified the SAME way the gate classified the email, so the rule
+// it writes will actually match the next email from that sender. Deduped by
+// (action, domain) so approving repeatedly doesn't pile up identical rules.
+export const rememberDecision = mutation({
+  args: { eventId: v.id("events") },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const ev = await ctx.db.get("events", args.eventId);
+    if (!ev || ev.userId !== userId) return null; // ownership
+
+    const domain = ev.registryDomain ?? fromDomainOf(ev.fromAddress);
+    if (!domain) return null;
+    const { action } = classifyRequest(
+      `${ev.subject}\n${ev.rawText}`,
+      ev.sensitiveRequest ?? false,
+    );
+
+    const existing = await ctx.db
+      .query("policies")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .unique()
+      .catch(() => null);
+    const rules: Rule[] = existing?.rules ?? [];
+
+    // Already have an allow rule for this action+domain? Don't duplicate.
+    if (
+      rules.some(
+        (r) =>
+          r.action === action && r.appliesTo === domain && r.decision === "allow",
+      )
+    ) {
+      return null;
+    }
+
+    const rule: Rule = {
+      id: `remember_${args.eventId}`,
+      action: action as RuleAction,
+      appliesTo: domain,
+      decision: "allow",
+    };
+    // A remembered decision is specific — put it at the TOP so it takes
+    // precedence over broader global rules (first match wins).
+    const next = [rule, ...rules];
+
+    const now = Date.now();
+    if (existing) {
+      await ctx.db.patch(existing._id, { rules: next, updatedAt: now });
+    } else {
+      await ctx.db.insert("policies", { userId, rules: next, updatedAt: now });
     }
     return null;
   },

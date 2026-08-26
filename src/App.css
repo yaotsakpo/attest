@@ -1334,6 +1334,40 @@ table.data.registry-cols {
   color: var(--ink-3);
   background: transparent;
 }
+/* the two-part decision badge: held → approved/dismissed */
+.decision-pair {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.decision-arrow {
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+}
+
+/* "remember this decision" prompt after an approve */
+.remember-prompt {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+  margin: 0 0 var(--space-md);
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid var(--accent);
+  background: var(--good-bg);
+  font-size: var(--t-sm);
+  color: var(--ink);
+  animation: fadeIn 180ms ease;
+}
+.remember-actions {
+  display: flex;
+  gap: var(--space-sm);
+}
+.remember-done {
+  color: var(--good);
+}
 
 /* ── Policy drawer (right-side) ─────────────────────────────────────────── */
 .drawer-scrim {

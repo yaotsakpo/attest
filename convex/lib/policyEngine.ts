@@ -132,13 +132,16 @@ export interface DecideActionInput {
 
 // Map an incoming email to the action the user's policy reasons about. Payment
 // intent wins (it's the higher-stakes classification), then a sensitive-info
-// request maps to share_info, else a plain reply.
-function requestedAction(
-  input: DecideActionInput,
+// request maps to share_info, else a plain reply. Exported so the
+// "remember this decision" flow classifies a held item exactly the way the gate
+// did — one source of truth, so the rule it writes will actually match next time.
+export function classifyRequest(
+  text: string,
+  sensitiveRequest: boolean,
 ): { action: string; amount?: number } {
-  const pay = detectPaymentRequest(input.text);
+  const pay = detectPaymentRequest(text);
   if (pay.isPayment) return { action: "payment", amount: pay.amount };
-  if (input.sensitiveRequest) return { action: "share_info" };
+  if (sensitiveRequest) return { action: "share_info" };
   return { action: "reply" };
 }
 
@@ -146,7 +149,10 @@ function requestedAction(
 // default disclosure gate when no rule matches. `allow` → auto_answer;
 // `hold`/`deny` → hold_for_approval (deny never auto-acts).
 export function decideAction(input: DecideActionInput): GateDecision {
-  const { action, amount } = requestedAction(input);
+  const { action, amount } = classifyRequest(
+    input.text,
+    input.sensitiveRequest,
+  );
   const hit = evaluatePolicy(input.rules, {
     action,
     amount,
