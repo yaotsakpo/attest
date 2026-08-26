@@ -197,3 +197,74 @@ test("policy: verified payment OVER the user's $500 threshold -> holds for appro
   expect(ev!.senderVerified).toBe(true);
   expect(ev!.gateAction).toBe("hold_for_approval");
 });
+
+// End-to-end proof of the continuity + reputation axes through the WIRED
+// pipeline. An in-network counterpart (agentmail.to) is seeded on first trusted
+// contact; a later message that doesn't carry the continuity proof is flagged as
+// a takeover and held; and a reputation event is recorded.
+test("continuity: in-network first contact seeds; later message without proof -> takeover hold + reputation event", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+
+  // The counterpart is a REGISTERED Attest agent (has its own profile) — that's
+  // what makes it in-network, not its domain. Register it.
+  const peerAddr = "peer@agentmail.to";
+  await t.run(async (ctx) => {
+    const puid = await ctx.db.insert("users", {});
+    await ctx.db.insert("profiles", {
+      userId: puid,
+      agentmailInbox: peerAddr,
+      agentmailInboxId: "inbox_peer",
+    });
+  });
+  const peerDomain = "agentmail.to";
+
+  // First contact from the in-network peer, a routine reply → auto-answered, and
+  // we seed continuity for next time.
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "peer_1",
+    fromAddress: peerAddr,
+    subject: "Hello",
+    rawText: "Are you free Tuesday?",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=agentmail.to",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+
+  const first = await eventByMsg(t, "peer_1");
+  expect(first!.gateAction).toBe("auto_answer"); // in-network reply lift
+
+  const seededRec = await t.run(async (ctx) =>
+    ctx.db
+      .query("continuity")
+      .withIndex("by_user_and_counterpart", (q) =>
+        q.eq("userId", userId).eq("counterpart", peerDomain),
+      )
+      .unique(),
+  );
+  expect(seededRec).not.toBeNull();
+  expect(seededRec!.seeded).toBe(true);
+
+  // Later message from the SAME address, no continuity proof — the takeover
+  // signal. Must hold, and record a takeover reputation event.
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "peer_2",
+    fromAddress: peerAddr,
+    subject: "Quick one",
+    rawText: "Are you around later?",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=agentmail.to",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+
+  const second = await eventByMsg(t, "peer_2");
+  expect(second!.gateAction).toBe("hold_for_approval"); // takeover suspected
+
+  const repEvents = await t.run(async (ctx) =>
+    ctx.db
+      .query("reputationEvents")
+      .withIndex("by_counterpart", (q) => q.eq("counterpart", peerDomain))
+      .collect(),
+  );
+  expect(repEvents.some((e) => e.kind === "takeover_suspected")).toBe(true);
+});

@@ -402,6 +402,21 @@ describe("decideAction — membership tier (the second axis)", () => {
     expect(r.action).toBe("auto_answer");
   });
 
+  test("REPUTATION flag (takeover seen elsewhere) holds even a verified in-network member", () => {
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: false,
+      domain: "peer.agentmail.to",
+      text: "Are you free Tuesday?",
+      rules: [],
+      tier: "in_network",
+      reputationFlagged: true, // network observed a takeover elsewhere
+    });
+    expect(r.action).toBe("hold_for_approval");
+    expect(r.reason).toMatch(/network|takeover|re-establish/i);
+  });
+
   test("CONTINUITY takeover overrides EVERYTHING — in-network member with an allow rule still holds", () => {
     const r = decideAction({
       grade: "A",

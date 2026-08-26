@@ -6,8 +6,10 @@ import { gradeFor } from "./lib/grade";
 import { domainFor } from "./lib/trustScore";
 import { detectSensitiveRequest } from "./lib/disclosureGate";
 import { decideAction } from "./lib/policyEngine";
-import { tierFor, isNetworkDomain } from "./lib/membership";
+import { tierFor } from "./lib/membership";
 import { continuityVerdict } from "./lib/continuityState";
+import { aggregateReputation } from "./lib/reputation";
+import { deriveSeed } from "./lib/continuity";
 
 // Attest agents embed the continuity response in a message as a tagged marker
 // that every Attest agent knows to read (and ordinary mail never carries). We
@@ -85,9 +87,16 @@ export const applyExtraction = internalMutation({
       .unique()
       .catch(() => null);
     // Trust TIER (second axis): is this counterpart in Attest's network (Attest
-    // holds its identity) or outside it? In-network gets a routine-reply lift;
-    // it never lifts payment/sensitive holds.
-    const isMember = isNetworkDomain(domain);
+    // holds its identity) or outside it? A member is a counterpart Attest itself
+    // provisioned — determined by a real profile lookup, NOT a domain guess (many
+    // AgentMail users share agentmail.to; only OUR provisioned inboxes are
+    // members). In-network gets a routine-reply lift; never lifts high-stakes.
+    const memberProfile = await ctx.db
+      .query("profiles")
+      .withIndex("by_inbox", (q) => q.eq("agentmailInbox", ev.fromAddress))
+      .unique()
+      .catch(() => null);
+    const isMember = !!memberProfile;
     const tier = tierFor({
       domain,
       senderVerified: ev.senderVerified,
@@ -139,6 +148,17 @@ export const applyExtraction = internalMutation({
       }
     }
 
+    // REPUTATION (third axis): fold this counterpart's ATTESTABLE event history
+    // (network-wide, all users) into a standing. A takeover observed ANYWHERE
+    // flags the counterpart — reputation earned elsewhere protects this user.
+    const repEvents = await ctx.db
+      .query("reputationEvents")
+      .withIndex("by_counterpart", (q) => q.eq("counterpart", domain))
+      .take(500);
+    const reputation = aggregateReputation(
+      repEvents.map((e) => ({ kind: e.kind, at: e.at })),
+    );
+
     const decision = decideAction({
       grade,
       senderVerified: ev.senderVerified,
@@ -148,12 +168,49 @@ export const applyExtraction = internalMutation({
       rules: policy?.rules ?? [],
       tier,
       continuityHold,
+      reputationFlagged: reputation.flagged,
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
       gateAction: decision.action,
       gateReason: decision.reason,
     });
+
+    // SEED ON TRUST: if we just decided to trust an in-network counterpart and
+    // have no continuity record yet, establish one (our reply carries the seed;
+    // every Attest agent decodes it). From next message on, we watch for the
+    // rotating proof. Only seed on a trusting outcome — never seed something held.
+    if (
+      isMember &&
+      decision.action === "auto_answer" &&
+      !continuityHold &&
+      !reputation.flagged
+    ) {
+      const already = await ctx.db
+        .query("continuity")
+        .withIndex("by_user_and_counterpart", (q) =>
+          q.eq("userId", ev.userId).eq("counterpart", domain),
+        )
+        .unique()
+        .catch(() => null);
+      if (!already) {
+        const seed = await deriveSeed(
+          "attest-agent",
+          domain,
+          `${ev.userId}:${domain}:trust-established`,
+        );
+        await ctx.db.insert("continuity", {
+          userId: ev.userId,
+          counterpart: domain,
+          seed,
+          seeded: true,
+          counter: 0,
+          status: "pending",
+          updatedAt: Date.now(),
+        });
+      }
+    }
+
     // On auto-answer (verified counterpart, routine request), the agent replies
     // for you via AgentMail. Held items wait for approval (see activity.resolve).
     if (decision.action === "auto_answer") {

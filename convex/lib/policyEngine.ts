@@ -138,6 +138,10 @@ export interface DecideActionInput {
   // hold BEFORE any trust/tier/policy consideration — a taken-over member is
   // worse than a stranger, so it overrides everything.
   continuityHold?: boolean;
+  // REPUTATION override (portable standing). True when the network has EVER
+  // observed a takeover of this counterpart — even if THIS user didn't catch it.
+  // Reputation earned elsewhere protects you here: hold until a human re-trusts.
+  reputationFlagged?: boolean;
 }
 
 // Map an incoming email to the action the user's policy reasons about. Payment
@@ -168,6 +172,17 @@ export function decideAction(input: DecideActionInput): GateDecision {
       action: "hold_for_approval",
       reason:
         "This counterpart was trusted before, but failed the continuity check — the identity may have been taken over. Holding everything until you confirm.",
+    };
+  }
+
+  // REPUTATION OVERRIDE (portable standing): the network has observed a takeover
+  // of this counterpart before — anywhere, not just here. Hold everything; a
+  // compromise elsewhere is a compromise everywhere until a human re-establishes.
+  if (input.reputationFlagged) {
+    return {
+      action: "hold_for_approval",
+      reason:
+        "This counterpart was flagged for a suspected takeover elsewhere in the network. Holding until you re-establish trust.",
     };
   }
 
