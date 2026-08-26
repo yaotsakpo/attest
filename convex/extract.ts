@@ -1,6 +1,7 @@
 import { internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import { ruleExtract } from "./lib/ruleExtract";
 
 const SYS = `You extract structured facts from a single job-search email. Return ONLY valid JSON:
 {"company": string|null, "role": string|null,
@@ -22,7 +23,15 @@ export const run = internalAction({
 
     const apiKey = process.env.OPENAI_API_KEY;
     if (!apiKey) {
-      // No key (e.g. in tests): skip extraction; the raw event still stands.
+      // No key: use the keyless rule-based extractor so the pipeline still
+      // advances (zero LLM spend). The raw event already stands; this just
+      // classifies it and moves the card.
+      const fromDomain = ev.fromAddress.split("@")[1] ?? "";
+      const extracted = ruleExtract(ev.subject, ev.rawText, fromDomain);
+      await ctx.runMutation(internal.pipeline.applyExtraction, {
+        eventId: args.eventId,
+        extracted,
+      });
       return null;
     }
 

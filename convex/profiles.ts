@@ -1,6 +1,6 @@
 import { internalQuery, internalMutation } from "./_generated/server";
 import { v } from "convex/values";
-import { Doc, Id } from "./_generated/dataModel";
+import type { Doc, Id } from "./_generated/dataModel";
 
 // Resolve which user owns a given AgentMail inbox address. Used by the inbound
 // webhook to route an incoming email to the right user. Internal: never exposed

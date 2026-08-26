@@ -1,122 +1,124 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { type FormEvent, useState } from "react";
+import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
+import { useAuthActions } from "@convex-dev/auth/react";
+import { Board } from "./Board";
+import { Registry } from "./Registry";
+import "./App.css";
 
-function App() {
-  const [count, setCount] = useState(0)
+const MIN_PASSWORD = 8;
+
+function SignIn() {
+  const { signIn } = useAuthActions();
+  const [flow, setFlow] = useState<"signIn" | "signUp">("signUp");
+  const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError(null);
+    const form = new FormData(e.currentTarget);
+    const email = String(form.get("email"));
+    const password = String(form.get("password"));
+
+    // Tell the user the real requirement BEFORE a round-trip.
+    if (password.length < MIN_PASSWORD) {
+      setError(`Password must be at least ${MIN_PASSWORD} characters.`);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await signIn("password", { email, password, flow });
+    } catch (err) {
+      // Convex Auth throws "Invalid password" for the default length rule, and
+      // a generic error for bad credentials on sign-in. Translate honestly.
+      const msg = err instanceof Error ? err.message : "";
+      if (/invalid password/i.test(msg)) {
+        setError(`Password must be at least ${MIN_PASSWORD} characters.`);
+      } else if (flow === "signIn") {
+        setError("Wrong email or password.");
+      } else {
+        setError("Couldn’t create your account. That email may already be in use.");
+      }
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
+    <div className="auth-wrap">
+      <form className="auth-card" onSubmit={onSubmit}>
+        <h1 className="auth-title">Job Copilot</h1>
+        <p className="auth-sub">
+          The copilot that watches your job search and learns who to trust.
+        </p>
+        <input name="email" type="email" placeholder="you@email.com" required />
+        <input
+          name="password"
+          type="password"
+          placeholder={`password (min ${MIN_PASSWORD} characters)`}
+          minLength={MIN_PASSWORD}
+          required
+        />
+        <button type="submit" disabled={submitting}>
+          {submitting
+            ? "…"
+            : flow === "signUp"
+              ? "Create account"
+              : "Sign in"}
+        </button>
+        {error && <p className="auth-error">{error}</p>}
         <button
           type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
+          className="link"
+          onClick={() => setFlow(flow === "signUp" ? "signIn" : "signUp")}
         >
-          Count is {count}
+          {flow === "signUp"
+            ? "Already have an account? Sign in"
+            : "New here? Create an account"}
         </button>
-      </section>
-
-      <div className="ticks"></div>
-
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
-
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      </form>
+    </div>
+  );
 }
 
-export default App
+function Dashboard() {
+  const { signOut } = useAuthActions();
+  return (
+    <div className="app">
+      <header className="app-header">
+        <div>
+          <h1 className="app-title">Job Copilot</h1>
+          <p className="app-tagline">
+            Your pipeline moves itself. Your copilot learns who to trust.
+          </p>
+        </div>
+        <button className="link" onClick={() => void signOut()}>
+          Sign out
+        </button>
+      </header>
+      <main className="app-main">
+        <section className="board-section">
+          <Board />
+        </section>
+        <Registry />
+      </main>
+    </div>
+  );
+}
+
+export default function App() {
+  return (
+    <>
+      <AuthLoading>
+        <p className="muted center">Loading…</p>
+      </AuthLoading>
+      <Unauthenticated>
+        <SignIn />
+      </Unauthenticated>
+      <Authenticated>
+        <Dashboard />
+      </Authenticated>
+    </>
+  );
+}

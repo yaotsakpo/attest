@@ -1,7 +1,7 @@
 import { internalMutation } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
-import { Id } from "./_generated/dataModel";
+import type { Id } from "./_generated/dataModel";
 import { evaluateSender } from "./lib/senderAuth";
 import { domainFor } from "./lib/trustScore";
 

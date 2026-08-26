@@ -1,6 +1,6 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
-import { Doc } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 import { computeTrustScore } from "./lib/trustScore";
 
 // Record one observation of a sending domain into the trust registry. Called

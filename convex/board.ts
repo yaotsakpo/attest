@@ -1,6 +1,6 @@
 import { query } from "./_generated/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { Doc } from "./_generated/dataModel";
+import type { Doc } from "./_generated/dataModel";
 
 // The signed-in user's pipeline cards. Auth-scoped: identity is derived
 // server-side, never accepted as an argument. Returns [] when signed out so the
