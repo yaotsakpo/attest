@@ -1,6 +1,12 @@
 import { internalMutation } from "./_generated/server";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
+import { gradeFor } from "./lib/grade";
+import { domainFor } from "./lib/trustScore";
+import {
+  detectSensitiveRequest,
+  decideDisclosure,
+} from "./lib/disclosureGate";
 
 type Stage = Doc<"applications">["stage"];
 
@@ -34,6 +40,33 @@ export const applyExtraction = internalMutation({
   handler: async (ctx, args): Promise<null> => {
     const ev = await ctx.db.get("events", args.eventId);
     if (!ev) return null;
+
+    // --- The disclosure gate -------------------------------------------------
+    // Decide whether the agent may auto-answer this sender or must hold for the
+    // user's approval, based on (a) the sender's earned domain grade and (b)
+    // whether the email asks for sensitive info the agent holds on file.
+    const domain = ev.registryDomain ?? domainFor(ev.fromAddress, null);
+    const domRow = await ctx.db
+      .query("domains")
+      .withIndex("by_domain", (q) => q.eq("domain", domain))
+      .unique()
+      .catch(() => null);
+    const grade = domRow
+      ? gradeFor(domRow.trustScore, domRow.verifiedCount, domRow.unverifiedCount)
+      : "F";
+    const sensitiveRequest = detectSensitiveRequest(
+      `${ev.subject}\n${ev.rawText}`,
+    );
+    const decision = decideDisclosure({
+      grade,
+      senderVerified: ev.senderVerified,
+      sensitiveRequest,
+    });
+    await ctx.db.patch("events", args.eventId, {
+      sensitiveRequest,
+      gateAction: decision.action,
+      gateReason: decision.reason,
+    });
 
     const ex = (args.extracted ?? {}) as {
       company?: string | null;

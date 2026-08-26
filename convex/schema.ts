@@ -50,6 +50,7 @@ export default defineSchema({
     rawText: v.string(),
     senderVerified: v.boolean(), // true iff dmarc=pass AND aligned; else "couldn't verify"
     verifyReason: v.optional(v.string()), // human-readable why-not
+    registryDomain: v.optional(v.string()), // the domain key this email earned trust for
     extracted: v.optional(v.any()), // OpenAI typed fields (null for absent, never guessed)
     eventType: v.optional(
       v.union(
@@ -60,9 +61,26 @@ export default defineSchema({
         v.literal("offer"),
       ),
     ),
+    // The disclosure gate's verdict for this email: did the agent auto-answer,
+    // or hold for the user because it couldn't stand behind releasing info?
+    sensitiveRequest: v.optional(v.boolean()),
+    gateAction: v.optional(
+      v.union(v.literal("auto_answer"), v.literal("hold_for_approval")),
+    ),
+    gateReason: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_msg", ["agentmailMsgId"]),
+
+  // The vault: the user's info the agent draws on to answer recruiters. Each
+  // row is a label/value the user added; `sensitive` (user-controlled) gates
+  // whether the agent may auto-release it or must hold for approval.
+  vault: defineTable({
+    userId: v.id("users"),
+    label: v.string(),
+    value: v.string(),
+    sensitive: v.boolean(),
+  }).index("by_user", ["userId"]),
 
   // The trust registry: one row per sending domain, trust EARNED from observed
   // authenticated mail (not SEO). Every inbound email updates the domain it

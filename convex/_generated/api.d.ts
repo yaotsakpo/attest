@@ -15,12 +15,15 @@ import type * as events from "../events.js";
 import type * as extract from "../extract.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
+import type * as lib_disclosureGate from "../lib/disclosureGate.js";
+import type * as lib_grade from "../lib/grade.js";
 import type * as lib_ruleExtract from "../lib/ruleExtract.js";
 import type * as lib_senderAuth from "../lib/senderAuth.js";
 import type * as lib_trustScore from "../lib/trustScore.js";
 import type * as pipeline from "../pipeline.js";
 import type * as profiles from "../profiles.js";
 import type * as registry from "../registry.js";
+import type * as vault from "../vault.js";
 
 import type {
   ApiFromModules,
@@ -36,12 +39,15 @@ declare const fullApi: ApiFromModules<{
   extract: typeof extract;
   http: typeof http;
   inbound: typeof inbound;
+  "lib/disclosureGate": typeof lib_disclosureGate;
+  "lib/grade": typeof lib_grade;
   "lib/ruleExtract": typeof lib_ruleExtract;
   "lib/senderAuth": typeof lib_senderAuth;
   "lib/trustScore": typeof lib_trustScore;
   pipeline: typeof pipeline;
   profiles: typeof profiles;
   registry: typeof registry;
+  vault: typeof vault;
 }>;
 
 /**

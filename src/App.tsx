@@ -90,18 +90,16 @@ function Dashboard() {
         <div>
           <h1 className="app-title">Job Copilot</h1>
           <p className="app-tagline">
-            Your pipeline moves itself. Your copilot learns who to trust.
+            An agent learning which domains to trust, from your real job search.
           </p>
         </div>
         <button className="link" onClick={() => void signOut()}>
           Sign out
         </button>
       </header>
-      <main className="app-main">
-        <section className="board-section">
-          <Board />
-        </section>
+      <main>
         <Registry />
+        <Board />
       </main>
     </div>
   );

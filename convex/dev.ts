@@ -1,4 +1,4 @@
-import { internalMutation } from "./_generated/server";
+import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
 // Dev/demo helpers. Internal only — never exposed to clients. Used from the CLI
@@ -30,6 +30,27 @@ export const linkDemoInbox = internalMutation({
       agentmailInboxId: args.inboxId ?? "demo_inbox",
     });
     return `linked ${user._id} -> ${args.inbox}`;
+  },
+});
+
+// Read the live board/registry state from the CLI (no UI needed) to verify the
+// pipeline during the build/demo.
+export const peek = internalQuery({
+  args: {},
+  handler: async (ctx) => {
+    const apps = await ctx.db.query("applications").take(100);
+    const events = await ctx.db.query("events").take(100);
+    const domains = await ctx.db.query("domains").take(100);
+    return {
+      applications: apps.map((a) => ({
+        company: a.company,
+        role: a.role,
+        stage: a.stage,
+        trust: a.trustState,
+      })),
+      eventCount: events.length,
+      domains: domains.map((d) => ({ domain: d.domain, score: d.trustScore })),
+    };
   },
 });
 

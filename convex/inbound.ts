@@ -32,6 +32,7 @@ export const ingestInbound = internalMutation({
     );
 
     const now = Date.now();
+    const domain = domainFor(args.fromAddress, args.authResultsHeader ?? null);
     const eventId = await ctx.db.insert("events", {
       userId: args.userId,
       agentmailMsgId: args.agentmailMsgId,
@@ -40,11 +41,11 @@ export const ingestInbound = internalMutation({
       rawText: args.rawText,
       senderVerified: verdict.verified,
       verifyReason: verdict.reason,
+      registryDomain: domain,
     });
 
     // Earn trust for the sending domain — the registry grows on every email.
     // (Same transaction as the event insert, so the two can never drift.)
-    const domain = domainFor(args.fromAddress, args.authResultsHeader ?? null);
     await ctx.runMutation(internal.registry.observeDomain, {
       domain,
       verified: verdict.verified,

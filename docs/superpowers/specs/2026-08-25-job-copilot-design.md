@@ -35,6 +35,18 @@ The human web is indexed for humans, SEO, ads, pages engineered to look relevant
 - This replaces the weak "how's my search" summary (old Task 10) as the thing built on top of the foundation.
 - Demo spine order: (1) board moves on its own = wow; (2) the trust registry grows live as mail lands = the insight; (3) the couldn't-verify catch = the safety punchline; (4) Firecrawl prep + approve-a-reply = useful.
 
+## THE STAKES (added 2026-08-26 — what makes it critical, not cute)
+
+The user gives the agent their **sensitive PII** (SSN, date of birth, address — shown MASKED, e.g. `SSN ***-**-1234`, never real-looking values) and authorizes it to **auto-answer recruiters on their behalf.** Now the trust registry is load-bearing: it is the gate between a phisher and the user's SSN.
+
+**The gate (the core demo drama):**
+- A verified domain (grade A/B) asking a normal question → the agent **auto-answers**. Smooth, magical.
+- An **unverified** sender, OR **any request for sensitive info** (SSN/DOB/bank/address) from a non-top-grade domain → the agent **REFUSES to auto-send and holds it for the user's approval**, showing exactly why (the domain's grade). It never says "fake"; it says "I couldn't verify this sender enough to release your SSN — approve if you trust them."
+
+This is PSAP/ICP made touchable: the verified channel gates the sensitive action. A judge feels it instantly — "an AI agent holding my SSN, and the only thing deciding whether it hands it over is this trust registry." The drama is the agent's **decision to withhold**, never the data itself (we never display real PII).
+
+Honesty rule still holds: unverified = "couldn't verify enough to auto-release," NOT "this is a scammer." The user can always approve.
+
 ## Stack (all four sponsors do real work — mandatory)
 
 - **Convex** — backend + the "magic." Tables, `useQuery` live subscriptions (the self-moving board), mutations on every email event, Convex Auth (per-user pipelines), an httpAction receiving the AgentMail webhook, scheduled actions for extraction/enrichment.
