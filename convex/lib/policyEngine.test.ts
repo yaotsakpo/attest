@@ -331,3 +331,74 @@ describe("decideAction (policy first, default gate fallback)", () => {
     expect(r.reason.length).toBeGreaterThan(0);
   });
 });
+
+describe("decideAction — membership tier (the second axis)", () => {
+  // In-network = Attest holds the counterpart's identity. So a routine reply is
+  // auto-answered even when the channel isn't DMARC-verified — Attest already
+  // knows who it is, it doesn't need channel proof. Out-of-network senders DO
+  // need channel verification to auto-answer (more scrutiny).
+  test("in-network member: routine reply auto-answers even WITHOUT channel verification", () => {
+    const r = decideAction({
+      grade: "F",
+      senderVerified: false, // channel not DMARC-aligned…
+      sensitiveRequest: false,
+      domain: "peer.agentmail.to",
+      text: "Are you free Tuesday?",
+      rules: [],
+      tier: "in_network", // …but Attest holds its identity
+    });
+    expect(r.action).toBe("auto_answer");
+  });
+
+  test("out-of-network, NOT channel-verified: routine reply holds (more scrutiny)", () => {
+    const r = decideAction({
+      grade: "F",
+      senderVerified: false,
+      sensitiveRequest: false,
+      domain: "stranger.com",
+      text: "Are you free Tuesday?",
+      rules: [],
+      tier: "verified",
+    });
+    // Out-of-network without channel verification gets held — no membership lift.
+    expect(r.action).toBe("hold_for_approval");
+  });
+
+  test("membership NEVER lifts a payment hold — in-network payment still holds", () => {
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: false,
+      domain: "peer.agentmail.to",
+      text: "Please remit $5,000.",
+      rules: [],
+      tier: "in_network",
+    });
+    expect(r.action).toBe("hold_for_approval");
+  });
+
+  test("membership NEVER lifts a sensitive-info hold — in-network SSN still holds", () => {
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: true,
+      domain: "peer.agentmail.to",
+      text: "Send your SSN.",
+      rules: [],
+      tier: "in_network",
+    });
+    expect(r.action).toBe("hold_for_approval");
+  });
+
+  test("tier is optional — omitting it preserves prior behavior", () => {
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: false,
+      domain: "acme.com",
+      text: "Are you free Tuesday?",
+      rules: [],
+    });
+    expect(r.action).toBe("auto_answer");
+  });
+});

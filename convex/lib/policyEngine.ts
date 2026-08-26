@@ -128,6 +128,11 @@ export interface DecideActionInput {
   domain: string;
   text: string;
   rules: Rule[];
+  // The trust TIER (second axis). in_network = Attest holds this counterpart's
+  // identity, so routine (non-stakes) messages get a lift — it doesn't have to
+  // earn a grade the slow way. NEVER lifts payment / sensitive holds. Optional;
+  // absent = treat as out-of-network (prior behavior preserved).
+  tier?: "in_network" | "verified" | "unverified";
 }
 
 // Map an incoming email to the action the user's policy reasons about. Payment
@@ -184,12 +189,27 @@ export function decideAction(input: DecideActionInput): GateDecision {
   // Safe default for MONEY: the disclosure gate below only understands
   // verification + sensitive info, not payments. If money is at stake and no
   // policy rule explicitly allowed it, we must HOLD — never auto-answer a
-  // payment the user never authorized.
+  // payment the user never authorized. (Membership does NOT lift this — we've
+  // already passed the sensitive short-circuit, and payment holds for everyone.)
   if (action === "payment") {
     return {
       action: "hold_for_approval",
       reason:
         "This involves a payment your agent isn't authorized to approve on its own. Set a policy rule to allow it, or approve this one.",
+    };
+  }
+
+  // MEMBERSHIP LIFT (second axis): an in-network counterpart is one whose
+  // identity Attest holds, so a routine reply is auto-answered even without a
+  // high EARNED grade — it doesn't need to earn trust the slow way. This applies
+  // ONLY to low-stakes replies (payment + sensitive already handled above), so
+  // membership never unlocks anything high-stakes. Out-of-network senders fall
+  // through to the normal disclosure gate (more scrutiny).
+  if (input.tier === "in_network" && action === "reply") {
+    return {
+      action: "auto_answer",
+      reason:
+        "In Attest's network — identity held by Attest. Routine reply handled on your behalf.",
     };
   }
 

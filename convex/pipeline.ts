@@ -6,6 +6,7 @@ import { gradeFor } from "./lib/grade";
 import { domainFor } from "./lib/trustScore";
 import { detectSensitiveRequest } from "./lib/disclosureGate";
 import { decideAction } from "./lib/policyEngine";
+import { tierFor, isNetworkDomain } from "./lib/membership";
 
 type Stage = Doc<"applications">["stage"];
 
@@ -65,6 +66,14 @@ export const applyExtraction = internalMutation({
       .withIndex("by_user", (q) => q.eq("userId", ev.userId))
       .unique()
       .catch(() => null);
+    // Trust TIER (second axis): is this counterpart in Attest's network (Attest
+    // holds its identity) or outside it? In-network gets a routine-reply lift;
+    // it never lifts payment/sensitive holds.
+    const tier = tierFor({
+      domain,
+      senderVerified: ev.senderVerified,
+      isNetworkMember: isNetworkDomain(domain),
+    });
     const decision = decideAction({
       grade,
       senderVerified: ev.senderVerified,
@@ -72,6 +81,7 @@ export const applyExtraction = internalMutation({
       domain,
       text,
       rules: policy?.rules ?? [],
+      tier,
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
