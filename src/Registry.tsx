@@ -83,7 +83,7 @@ export function Registry() {
               <th>Grade</th>
               {th("domain", "Domain")}
               {th("score", "Score", "num")}
-              {th("sightings", "Verified / Total", "num")}
+              {th("sightings", "Verified", "num")}
               {th("lastSeen", "Last seen", "num")}
             </tr>
           </thead>

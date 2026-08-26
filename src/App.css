@@ -255,41 +255,28 @@ button {
   align-items: center;
 }
 
-/* --- Tiling layout (tiling-WM composition) --- */
+/* --- Tiling layout (two independent columns, each packs tightly) ---
+   Left = your data (registry + pipeline). Right = the agent's activity
+   (held/inbox) + the live trust-map. No forced row alignment, so a short
+   registry doesn't leave dead space beside a tall inbox. */
 .tiles {
   display: grid;
   grid-template-columns: 1.15fr 1fr;
-  grid-template-areas:
-    "registry inbox"
-    "registry map"
-    "board    board";
   gap: var(--space-xl);
   align-items: start;
 }
-.tile-registry {
-  grid-area: registry;
+.tiles-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2xl);
+  min-width: 0;
 }
-.tile-inbox {
-  grid-area: inbox;
-}
-.tile-map {
-  grid-area: map;
-}
-.tile-board {
-  grid-area: board;
-}
-/* inside tiles, sections shouldn't add their own bottom margin */
 .tiles .section {
   margin-bottom: 0;
 }
 @media (max-width: 900px) {
   .tiles {
     grid-template-columns: 1fr;
-    grid-template-areas:
-      "registry"
-      "inbox"
-      "map"
-      "board";
   }
 }
 
@@ -458,10 +445,21 @@ table.data.registry-cols {
 .registry-cols th:nth-child(4),
 .registry-cols td:nth-child(4),
 .registry-cols th:nth-child(5),
-.registry-cols td:nth-child(5),
+.registry-cols td:nth-child(5) {
+  width: 84px;
+}
 .registry-cols th:nth-child(6),
 .registry-cols td:nth-child(6) {
-  width: 150px;
+  width: 78px;
+}
+.registry-cols td.m {
+  white-space: nowrap;
+}
+/* tighter cell padding inside the half-width column so 6 cols fit */
+.registry-cols td,
+.registry-cols th {
+  padding-left: var(--space-md);
+  padding-right: var(--space-md);
 }
 .data thead th {
   text-align: left;
@@ -610,21 +608,19 @@ table.data.registry-cols {
   padding: var(--space-2xl) var(--space-lg);
   color: var(--ink-3);
   font-size: var(--t-sm);
+  text-align: left;
 }
 
 /* --- Pipeline board --- */
+/* board lives in a ~half-width column now → 3×2 grid of stages */
 .board {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
 }
-@media (max-width: 820px) {
+@media (max-width: 560px) {
   .board {
-    grid-auto-flow: column;
-    grid-template-columns: none;
-    grid-auto-columns: 150px;
-    overflow-x: auto;
-    padding-bottom: var(--space-sm);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
 .column {
@@ -753,18 +749,21 @@ table.data.registry-cols {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--space-2xl);
-  border: 1px solid rgba(228, 158, 34, 0.4);
-  border-radius: var(--radius-sm);
+  gap: var(--space-xl);
+  border: 1px solid var(--warn);
+  border-radius: 0;
   background: var(--warn-bg);
   padding: var(--space-lg) var(--space-xl);
+  text-align: left;
   animation: cardIn 400ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 .held-main {
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  align-items: flex-start;
+  text-align: left;
+  gap: var(--space-sm);
 }
 .held-top {
   display: flex;

@@ -184,6 +184,12 @@ export function TrustGraph() {
     function frame() {
       rebuild(dataRef.current);
       t += 0.006;
+      // hide the hub entirely when there's nothing observed, so the empty-state
+      // message doesn't collide with the glowing core
+      const has = nodes.length > 0;
+      hub.visible = has;
+      hubGlow.visible = has;
+      stars.visible = has;
       // slow living rotation of the whole graph
       group.rotation.y = Math.sin(t * 0.7) * 0.35;
       group.rotation.x = Math.cos(t * 0.5) * 0.12;
