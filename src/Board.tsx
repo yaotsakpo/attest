@@ -56,9 +56,11 @@ export function Board() {
               <div className="column-title">
                 <span>{stage.label}</span>
               </div>
-              <div className="card card-skeleton">
-                <span className="skeleton" />
-                <span className="skeleton" style={{ width: "45%" }} />
+              <div className="column-cards">
+                <div className="card card-skeleton">
+                  <span className="skeleton" />
+                  <span className="skeleton" style={{ width: "45%" }} />
+                </div>
               </div>
             </div>
           ))}
@@ -101,22 +103,24 @@ function Column({
         <span>{label}</span>
         <span>{cards.length || ""}</span>
       </div>
-      {visible.map((a) => (
-        <div key={a._id} className="card">
-          <div className="card-company">{a.company}</div>
-          <div className="card-meta">
-            <Status state={a.trustState} />
+      <div className="column-cards">
+        {visible.map((a) => (
+          <div key={a._id} className="card">
+            <div className="card-company">{a.company}</div>
+            <div className="card-meta">
+              <Status state={a.trustState} />
+            </div>
           </div>
-        </div>
-      ))}
-      {remaining > 0 && (
-        <button
-          className="column-more"
-          onClick={() => setShown(shown + PER_COLUMN)}
-        >
-          +{remaining} more
-        </button>
-      )}
+        ))}
+        {remaining > 0 && (
+          <button
+            className="column-more"
+            onClick={() => setShown(shown + PER_COLUMN)}
+          >
+            +{remaining} more
+          </button>
+        )}
+      </div>
     </div>
   );
 }

@@ -848,27 +848,52 @@ table.data.registry-cols {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }
+/* Fixed-height column: header stays put, the card list scrolls inside. Min +
+   max height keep every column the same size regardless of card count. */
 .column {
   border: 1px solid var(--term-border);
   border-radius: var(--radius-sm);
-  padding: var(--space-sm);
   background: var(--term-bg);
-  min-height: 120px;
+  height: 360px; /* fixed → uniform columns */
+  min-height: 200px;
   display: flex;
   flex-direction: column;
-  gap: var(--space-sm);
+  overflow: hidden;
 }
 .column-title {
+  flex-shrink: 0;
   font-size: 10px;
   font-family: var(--mono);
   text-transform: uppercase;
   letter-spacing: 0.08em;
   color: var(--ink-3);
-  padding: var(--space-xs) var(--space-sm);
+  padding: var(--space-sm) var(--space-md);
   display: flex;
   justify-content: space-between;
   align-items: center;
   border-bottom: 1px solid var(--term-border);
+  background: var(--term-bar);
+}
+/* the scrollable card area */
+.column-cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-sm);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+/* slim scrollbar to match the terminal aesthetic */
+.column-cards::-webkit-scrollbar {
+  width: 6px;
+}
+.column-cards::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
+}
+.column-cards::-webkit-scrollbar-track {
+  background: transparent;
 }
 .card {
   background: var(--surface);
