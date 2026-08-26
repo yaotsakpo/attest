@@ -1159,23 +1159,15 @@ table.data.registry-cols {
   font-weight: 600;
   font-size: var(--t-sm);
   color: var(--ink);
-  line-height: 1.3;
-  /* one line, ellipsis if long */
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 100%;
+  line-height: 1.35;
+  /* full subject — never crop; it's what the user decides on */
 }
 .held-reason {
   color: var(--ink-2);
   font-size: var(--t-xs);
   max-width: 64ch;
-  line-height: 1.4;
-  /* clamp to 1 line so the card stays compact */
-  display: -webkit-box;
-  -webkit-line-clamp: 1;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+  line-height: 1.45;
+  /* full reason — the user needs the whole "why" to approve/dismiss */
 }
 .held-actions {
   display: flex;
