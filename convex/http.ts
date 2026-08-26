@@ -77,4 +77,26 @@ http.route({
   }),
 });
 
+// --- Agent-queryable trust registry --------------------------------------
+// Read-only. An agent (or anyone) can GET the domains this system has learned
+// to trust, ranked by earned reputation. This is the seed of a larger idea:
+// a trust surface for agents built from observed authenticated behavior, not
+// SEO. Returns JSON: { domains: [{ domain, trustScore, verifiedCount, ... }] }.
+http.route({
+  path: "/registry/domains",
+  method: "GET",
+  handler: httpAction(async (ctx) => {
+    const domains = await ctx.runQuery(internal.registry.listForAgents, {});
+    return new Response(JSON.stringify({ domains }), {
+      status: 200,
+      headers: {
+        "content-type": "application/json",
+        // read-only public registry — allow agent/browser fetches
+        "access-control-allow-origin": "*",
+        "cache-control": "public, max-age=30",
+      },
+    });
+  }),
+});
+
 export default http;

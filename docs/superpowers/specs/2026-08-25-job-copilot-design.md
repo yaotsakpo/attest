@@ -23,6 +23,18 @@ A generic job tracker (Teal/Huntr/Simplify exist) does not win. Three edges, un-
 
 The live board is the demo *hook*; sender-verification is the *why-you-win*.
 
+## THE SPINE (added 2026-08-26 — this is what makes it NOT a job tracker)
+
+A job tracker with a security badge is forgettable (and too close to SentSignal/Teal/Huntr). The reframe: **the app is an agent building its own trust map of the internet, live, using the job search as the data source.**
+
+The human web is indexed for humans, SEO, ads, pages engineered to look relevant. Agents inherit that polluted index and get fooled. So this agent earns its OWN trust surface: every DMARC-aligned email it receives is a verifiable data point ("this domain is real and behaves"). It accumulates those into a **live, per-domain trust registry** and exposes it as a **read-only endpoint an agent could query** ("give me domains you actually trust"). Earned reputation, not SEO.
+
+- **Not** "track my applications" → **"watch an agent learn which domains on the internet it can trust, from real signal."**
+- Same PSAP/ICP DNA leveled up: sender verification = trust for ONE email; the registry = trust ACCUMULATED into a queryable asset.
+- Hackathon scope is a LIGHTWEIGHT, single-user seed of a much larger Inbin-scale idea (parked). We label it as a seed; we do not overclaim a global reputation graph.
+- This replaces the weak "how's my search" summary (old Task 10) as the thing built on top of the foundation.
+- Demo spine order: (1) board moves on its own = wow; (2) the trust registry grows live as mail lands = the insight; (3) the couldn't-verify catch = the safety punchline; (4) Firecrawl prep + approve-a-reply = useful.
+
 ## Stack (all four sponsors do real work — mandatory)
 
 - **Convex** — backend + the "magic." Tables, `useQuery` live subscriptions (the self-moving board), mutations on every email event, Convex Auth (per-user pipelines), an httpAction receiving the AgentMail webhook, scheduled actions for extraction/enrichment.

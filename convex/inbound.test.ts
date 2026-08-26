@@ -52,6 +52,19 @@ test("ingestInbound writes a verified event and is idempotent on message id", as
   );
   expect(events).toHaveLength(1);
   expect(events[0].senderVerified).toBe(true);
+
+  // The registry earned trust for acme.com from this verified email — and the
+  // dedup means the dupe did NOT double-count it.
+  const acme = await t.run(async (ctx) =>
+    ctx.db
+      .query("domains")
+      .withIndex("by_domain", (q) => q.eq("domain", "acme.com"))
+      .unique(),
+  );
+  expect(acme).not.toBeNull();
+  expect(acme!.verifiedCount).toBe(1);
+  expect(acme!.unverifiedCount).toBe(0);
+  expect(acme!.trustScore).toBeGreaterThan(0.5); // earned above neutral
 });
 
 test("ingestInbound marks an unaligned sender as couldn't-verify with a reason", async () => {

@@ -64,6 +64,19 @@ export default defineSchema({
     .index("by_user", ["userId"])
     .index("by_msg", ["agentmailMsgId"]),
 
+  // The trust registry: one row per sending domain, trust EARNED from observed
+  // authenticated mail (not SEO). Every inbound email updates the domain it
+  // authenticated as. This is the app's spine — an agent's own trust map of the
+  // internet — and is exposed read-only at /registry/domains.
+  domains: defineTable({
+    domain: v.string(), // the authenticated domain (or the From domain if none)
+    verifiedCount: v.number(), // # of DMARC-aligned sightings
+    unverifiedCount: v.number(), // # of couldn't-verify sightings
+    trustScore: v.number(), // derived 0..1, monotonic-ish reputation
+    firstSeen: v.number(),
+    lastSeen: v.number(),
+  }).index("by_domain", ["domain"]),
+
   // AI-drafted replies awaiting human approval (approve-before-send).
   drafts: defineTable({
     userId: v.id("users"),

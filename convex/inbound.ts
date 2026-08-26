@@ -3,6 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { Id } from "./_generated/dataModel";
 import { evaluateSender } from "./lib/senderAuth";
+import { domainFor } from "./lib/trustScore";
 
 // Persist an inbound email as an `events` row, then schedule OpenAI extraction.
 // Idempotent: a duplicate delivery (same AgentMail message id) is dropped so the
@@ -30,6 +31,7 @@ export const ingestInbound = internalMutation({
       args.authResultsHeader ?? null,
     );
 
+    const now = Date.now();
     const eventId = await ctx.db.insert("events", {
       userId: args.userId,
       agentmailMsgId: args.agentmailMsgId,
@@ -38,6 +40,15 @@ export const ingestInbound = internalMutation({
       rawText: args.rawText,
       senderVerified: verdict.verified,
       verifyReason: verdict.reason,
+    });
+
+    // Earn trust for the sending domain — the registry grows on every email.
+    // (Same transaction as the event insert, so the two can never drift.)
+    const domain = domainFor(args.fromAddress, args.authResultsHeader ?? null);
+    await ctx.runMutation(internal.registry.observeDomain, {
+      domain,
+      verified: verdict.verified,
+      at: now,
     });
 
     // Schedule extraction (Task 5) — never block the webhook on the LLM call.
