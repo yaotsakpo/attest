@@ -107,12 +107,20 @@ function Dashboard() {
 
       <main>
         {view === "home" ? (
-          <>
-            <TrustGraph />
-            <Activity />
-            <Registry />
-            <Board />
-          </>
+          <div className="tiles">
+            <div className="tile-registry">
+              <Registry />
+            </div>
+            <div className="tile-inbox">
+              <Activity />
+            </div>
+            <div className="tile-map">
+              <TrustGraph />
+            </div>
+            <div className="tile-board">
+              <Board />
+            </div>
+          </div>
         ) : (
           <Vault />
         )}
