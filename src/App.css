@@ -4,41 +4,44 @@
    one signature node-graph. No gradients, no floating accent cards. */
 
 @font-face {
-  font-family: "Public Sans";
-  src: url("/fonts/publicsans.woff2") format("woff2");
+  font-family: "Inter";
+  src: url("/fonts/inter.woff2") format("woff2");
   font-weight: 400 700;
   font-display: swap;
 }
 @font-face {
-  font-family: "Spline Sans Mono";
-  src: url("/fonts/splinesansmono.woff2") format("woff2");
-  font-weight: 400 600;
+  font-family: "JetBrains Mono";
+  src: url("/fonts/jetbrainsmono.woff2") format("woff2");
+  font-weight: 400 700;
   font-display: swap;
 }
 
 :root {
-  /* Terminal.css shape + catppuccin-mocha palette — TUI-native, credible */
-  --bg: #181825; /* mantle — a touch darker than base for the page ground */
-  --surface: #1e1e2e; /* base */
-  --surface-2: #313244; /* surface0 */
-  --line: #45475a; /* surface1 — crisp TUI border, NOT translucent */
-  --line-strong: #585b70; /* surface2 */
-  --dash: #45475a;
-  --term-bg: #1e1e2e;
-  --term-bar: #181825;
-  --term-border: #45475a;
-  --ink: #cdd6f4; /* text */
-  --ink-2: #a6adc8; /* subtext0 */
-  --ink-3: #7f849c; /* overlay1 */
-  --accent: #89b4fa; /* blue — primary/interaction */
+  /* matches emmanueltsakpo.click: #0b0d12 dark + emerald accents, Inter +
+     JetBrains Mono, subtle gradient-glow. Terminal SHAPE (sharp, mono-forward)
+     retained. Emerald = verified/trusted, thematically ideal for the registry. */
+  --bg: #0b0d12; /* portfolio ground */
+  --surface: #12151c; /* raised surface */
+  --surface-2: #1a1e27; /* card / hover */
+  --line: #232833; /* hairline border */
+  --line-strong: #313743;
+  --dash: #232833;
+  --term-bg: #0e1117;
+  --term-bar: #12151c;
+  --term-border: #232833;
+  --ink: #f3f4f6; /* near-white text */
+  --ink-2: #9ca3af; /* gray-400 */
+  --ink-3: #6b7280; /* gray-500 */
+  --accent: #34d399; /* emerald — primary/interaction */
+  --accent-2: #10b981; /* deeper emerald */
 
-  /* ANSI semantic — verdict colors, mapped to our gate states */
-  --good: #a6e3a1; /* green — verified */
-  --good-bg: rgba(166, 227, 161, 0.1);
-  --warn: #f9e2af; /* yellow — held / couldn't-verify (calm, not alarm) */
-  --warn-bg: rgba(249, 226, 175, 0.1);
-  --bad: #f38ba8; /* red — flagged */
-  --bad-bg: rgba(243, 139, 168, 0.1);
+  /* semantic verdict colors */
+  --good: #34d399; /* emerald — verified (== brand accent, on-theme) */
+  --good-bg: rgba(52, 211, 153, 0.1);
+  --warn: #f59e0b; /* amber — held / couldn't-verify (calm) */
+  --warn-bg: rgba(245, 158, 11, 0.1);
+  --bad: #f87171; /* red — flagged */
+  --bad-bg: rgba(248, 113, 113, 0.1);
 
   /* 4pt spacing scale, semantic names */
   --space-xs: 4px;
@@ -54,8 +57,8 @@
   --radius-sm: 0px;
   --radius-pill: 0px;
 
-  --sans: "Public Sans", -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "Spline Sans Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --sans: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
   /* type scale, 1.25 ratio, fixed rem (app UI) */
   --t-xs: 0.75rem;
@@ -76,7 +79,7 @@ body {
   margin: 0;
   background: var(--bg);
   color: var(--ink);
-  font-family: var(--mono); /* terminal: everything monospace */
+  font-family: var(--sans); /* Inter body, like the portfolio */
   font-size: var(--t-base);
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;

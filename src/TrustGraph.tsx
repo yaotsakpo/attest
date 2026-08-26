@@ -13,13 +13,13 @@ import { gradeFor } from "./grade";
 // data — the graph IS the network. Reduced-motion → single static frame.
 
 const GRADE_COLOR: Record<string, number> = {
-  A: 0xa6e3a1,
-  B: 0xa6e3a1,
-  C: 0xf9e2af,
-  D: 0xf9e2af,
-  F: 0xf38ba8,
+  A: 0x34d399, // emerald
+  B: 0x34d399,
+  C: 0xf59e0b, // amber
+  D: 0xf59e0b,
+  F: 0xf87171, // red
 };
-const HUB_COLOR = 0x89b4fa;
+const HUB_COLOR = 0x6366f1; // indigo (portfolio gradient start)
 
 type DomainDoc = {
   domain: string;
