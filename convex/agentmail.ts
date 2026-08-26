@@ -1,0 +1,113 @@
+import { action, internalAction } from "./_generated/server";
+import { internal } from "./_generated/api";
+import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
+
+// AgentMail REST client (raw fetch — no SDK needed in a Convex action).
+// Base + auth per docs.agentmail.to. Key is read from the deployment env.
+const BASE = "https://api.agentmail.to/v0";
+function headers() {
+  return {
+    Authorization: `Bearer ${process.env.AGENTMAIL_API_KEY}`,
+    "Content-Type": "application/json",
+  };
+}
+
+// Provision (or reuse, via client_id idempotency) an AgentMail inbox for the
+// signed-in user, then persist it on their profile. Also registers the inbound
+// webhook on that inbox so real mail flows to our /webhooks/agentmail endpoint.
+export const provisionInbox = action({
+  args: {},
+  returns: v.union(
+    v.object({ email: v.string(), inboxId: v.string() }),
+    v.null(),
+  ),
+  handler: async (ctx): Promise<{ email: string; inboxId: string } | null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    if (!process.env.AGENTMAIL_API_KEY) {
+      throw new Error("AGENTMAIL_API_KEY not set");
+    }
+
+    // reuse existing profile inbox if present
+    const existing = await ctx.runQuery(internal.profiles.byUser, { userId });
+    if (existing) {
+      return {
+        email: existing.agentmailInbox,
+        inboxId: existing.agentmailInboxId,
+      };
+    }
+
+    // create inbox (client_id makes it idempotent per user)
+    const res = await fetch(`${BASE}/inboxes`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ client_id: `warden-${userId}` }),
+    });
+    if (!res.ok) {
+      throw new Error(`AgentMail create inbox failed: ${res.status}`);
+    }
+    const inbox = (await res.json()) as { inbox_id: string; email: string };
+
+    await ctx.runMutation(internal.profiles.create, {
+      userId,
+      agentmailInbox: inbox.email,
+      agentmailInboxId: inbox.inbox_id,
+    });
+
+    // register the inbound webhook on this inbox → our public endpoint.
+    // Subscribe to both received and the authentication-failure event so our
+    // trust verdict can use AgentMail's own auth classification.
+    const site = process.env.CONVEX_SITE_URL;
+    try {
+      await fetch(`${BASE}/inboxes/${inbox.inbox_id}/webhooks`, {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({
+          url: `${site}/webhooks/agentmail`,
+          event_types: ["message.received", "message.received.unauthenticated"],
+          client_id: `warden-hook-${userId}`,
+        }),
+      });
+      // Note: the response includes a `secret` (whsec_...) for Svix
+      // verification. For the hackathon we accept unsigned inbound (the endpoint
+      // still resolves the inbox owner and only ingests known inboxes); wiring
+      // Svix verification is a follow-up hardening step.
+    } catch {
+      // webhook registration failure shouldn't block inbox provisioning
+    }
+
+    return { email: inbox.email, inboxId: inbox.inbox_id };
+  },
+});
+
+// Send an outbound reply in-thread via AgentMail. Called when the agent
+// auto-answers a verified counterpart, or when the user approves a held item.
+export const sendReply = internalAction({
+  args: {
+    inboxId: v.string(),
+    messageId: v.string(),
+    text: v.string(),
+  },
+  returns: v.union(
+    v.object({ messageId: v.string(), threadId: v.string() }),
+    v.null(),
+  ),
+  handler: async (_ctx, args) => {
+    if (!process.env.AGENTMAIL_API_KEY) return null;
+    const res = await fetch(
+      `${BASE}/inboxes/${args.inboxId}/messages/${args.messageId}/reply`,
+      {
+        method: "POST",
+        headers: headers(),
+        body: JSON.stringify({ text: args.text, reply_all: false }),
+      },
+    );
+    if (!res.ok) return null;
+    const j = (await res.json()) as { message_id: string; thread_id: string };
+    return { messageId: j.message_id, threadId: j.thread_id };
+  },
+});
+
+// `process.env` is available at Convex runtime; declared for the editor.
+declare const process: { env: Record<string, string | undefined> };

@@ -33,7 +33,10 @@ http.route({
     }
 
     const p = payload as Record<string, unknown>;
-    // AgentMail nests the message under `message` (per teardown); tolerate flat.
+    // AgentMail nests the message under `message`; the envelope carries
+    // `event_type` (e.g. "message.received.unauthenticated" when the sender
+    // failed authentication — AgentMail's own verdict).
+    const eventType = str(p.event_type);
     const msg = (typeof p.message === "object" && p.message !== null
       ? p.message
       : p) as Record<string, unknown>;
@@ -41,11 +44,14 @@ http.route({
     const msgId = str(msg.message_id) || str(msg.id);
     if (!msgId) return new Response(null, { status: 202 }); // nothing to dedup on
 
-    // Which inbox received this? AgentMail may give `to` (array) or inbox_id.
+    // Resolve the inbox owner. AgentMail gives inbox_id on the message; fall back
+    // to the `to` address for our own simulated webhooks.
     const toList = Array.isArray(msg.to) ? msg.to : [];
-    const inboxAddr = str(toList[0]) || str(p.inbox_id) || str(msg.inbox_id);
+    const inboxId = str(msg.inbox_id) || str(p.inbox_id);
+    const inboxAddr = str(toList[0]);
     const userId = await ctx.runQuery(internal.profiles.userByInbox, {
       inbox: inboxAddr,
+      inboxId,
     });
     if (!userId) return new Response(null, { status: 202 }); // unknown inbox: ack, ignore
 
@@ -71,6 +77,11 @@ http.route({
       subject: str(msg.subject),
       rawText: str(msg.text) || str(msg.preview),
       authResultsHeader: authResults,
+      // AgentMail's own auth verdict: true when it classified the sender as
+      // unauthenticated (SPF/DKIM/DMARC failure).
+      agentmailUnauthenticated: eventType === "message.received.unauthenticated",
+      // store the inbox + AgentMail message id so the agent can reply in-thread
+      agentmailInboxId: inboxId || undefined,
     });
 
     return new Response(null, { status: 200 });

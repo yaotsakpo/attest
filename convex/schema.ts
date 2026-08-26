@@ -14,7 +14,10 @@ export default defineSchema({
     agentmailInbox: v.string(), // "name@agentmail.to" — the apply-with address
     agentmailInboxId: v.string(),
     searchProfile: v.optional(v.string()),
-  }).index("by_user", ["userId"]),
+  })
+    .index("by_user", ["userId"])
+    .index("by_inbox", ["agentmailInbox"])
+    .index("by_inbox_id", ["agentmailInboxId"]),
 
   // One row per job applied to = the pipeline cards.
   applications: defineTable({
@@ -45,6 +48,7 @@ export default defineSchema({
     userId: v.id("users"),
     applicationId: v.optional(v.id("applications")),
     agentmailMsgId: v.string(), // dedup key — makes the webhook idempotent
+    agentmailInboxId: v.optional(v.string()), // inbox that received it (for in-thread replies)
     fromAddress: v.string(),
     subject: v.string(),
     rawText: v.string(),

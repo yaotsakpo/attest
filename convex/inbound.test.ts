@@ -99,3 +99,48 @@ test("ingestInbound marks an unaligned sender as couldn't-verify with a reason",
   expect(events[0].senderVerified).toBe(false);
   expect(events[0].verifyReason).toMatch(/not fake/i);
 });
+
+test("agentmailUnauthenticated (no auth header) is couldn't-verify, never 'fake', and persists the inbox id", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await t.run(async (ctx) => {
+    const uid = await ctx.db.insert("users", {});
+    await ctx.db.insert("profiles", {
+      userId: uid,
+      agentmailInbox: "seeker@agentmail.to",
+      agentmailInboxId: "inbox_1",
+    });
+    return uid;
+  });
+
+  const eventId = await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "unauth_1",
+    fromAddress: "someone@unknown.example",
+    subject: "Re: your application",
+    rawText: "Hi there.",
+    // No auth header at all — the mail provider's own verdict is what drives it.
+    agentmailUnauthenticated: true,
+    agentmailInboxId: "inbox_1",
+  });
+  expect(eventId).not.toBeNull();
+
+  const events = await t.run(async (ctx) =>
+    ctx.db
+      .query("events")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .collect(),
+  );
+  expect(events).toHaveLength(1);
+  const ev = events[0];
+
+  // AgentMail's classification is authoritative: couldn't-verify.
+  expect(ev.senderVerified).toBe(false);
+  // Honesty discipline: a reason is present, it uses couldn't-verify wording
+  // ("not fake"), and it never ASSERTS the sender is fake/spoofed — every
+  // mention of "fake"/"spoof" must be negated ("not fake"), never a bare claim.
+  expect(ev.verifyReason).toBeTruthy();
+  expect(ev.verifyReason!).toMatch(/not fake/i);
+  expect(ev.verifyReason!).not.toMatch(/(?<!not )\b(fake|spoof)/i);
+  // The inbox that received it is persisted for later in-thread replies.
+  expect(ev.agentmailInboxId).toBe("inbox_1");
+});

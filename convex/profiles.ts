@@ -6,11 +6,23 @@ import type { Doc, Id } from "./_generated/dataModel";
 // webhook to route an incoming email to the right user. Internal: never exposed
 // to clients.
 export const userByInbox = internalQuery({
-  args: { inbox: v.string() },
+  args: { inbox: v.string(), inboxId: v.optional(v.string()) },
+  returns: v.union(v.id("users"), v.null()),
   handler: async (ctx, args): Promise<Id<"users"> | null> => {
+    // Prefer the stable AgentMail inbox_id when we have one (it's the real
+    // identity of the inbox); fall back to matching the email address for our
+    // own simulated webhooks that only carry a `to` address.
+    if (args.inboxId) {
+      const inboxId = args.inboxId;
+      const byId = await ctx.db
+        .query("profiles")
+        .withIndex("by_inbox_id", (q) => q.eq("agentmailInboxId", inboxId))
+        .first();
+      if (byId) return byId.userId;
+    }
     const p = await ctx.db
       .query("profiles")
-      .filter((q) => q.eq(q.field("agentmailInbox"), args.inbox))
+      .withIndex("by_inbox", (q) => q.eq("agentmailInbox", args.inbox))
       .first();
     return p?.userId ?? null;
   },
@@ -20,6 +32,17 @@ export const userByInbox = internalQuery({
 // (Task 7) to avoid creating a second inbox for the same user.
 export const byUser = internalQuery({
   args: { userId: v.id("users") },
+  returns: v.union(
+    v.object({
+      _id: v.id("profiles"),
+      _creationTime: v.number(),
+      userId: v.id("users"),
+      agentmailInbox: v.string(),
+      agentmailInboxId: v.string(),
+      searchProfile: v.optional(v.string()),
+    }),
+    v.null(),
+  ),
   handler: async (ctx, args): Promise<Doc<"profiles"> | null> => {
     return await ctx.db
       .query("profiles")
@@ -35,6 +58,7 @@ export const create = internalMutation({
     agentmailInbox: v.string(),
     agentmailInboxId: v.string(),
   },
+  returns: v.id("profiles"),
   handler: async (ctx, args): Promise<Id<"profiles">> => {
     return await ctx.db.insert("profiles", {
       userId: args.userId,

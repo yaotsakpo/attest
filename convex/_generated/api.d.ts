@@ -9,6 +9,7 @@
  */
 
 import type * as activity from "../activity.js";
+import type * as agentmail from "../agentmail.js";
 import type * as auth from "../auth.js";
 import type * as board from "../board.js";
 import type * as dev from "../dev.js";
@@ -34,6 +35,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   activity: typeof activity;
+  agentmail: typeof agentmail;
   auth: typeof auth;
   board: typeof board;
   dev: typeof dev;

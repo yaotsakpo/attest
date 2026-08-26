@@ -16,6 +16,12 @@ export const ingestInbound = internalMutation({
     subject: v.string(),
     rawText: v.string(),
     authResultsHeader: v.optional(v.string()),
+    // AgentMail's own auth classification: true when the mail provider flagged
+    // the sender as failing authentication. Authoritative when present.
+    agentmailUnauthenticated: v.optional(v.boolean()),
+    // The inbox that received this email — stored so the agent can reply
+    // in-thread later.
+    agentmailInboxId: v.optional(v.string()),
   },
   returns: v.union(v.id("events"), v.null()),
   handler: async (ctx, args): Promise<Id<"events"> | null> => {
@@ -27,16 +33,26 @@ export const ingestInbound = internalMutation({
       .catch(() => null); // .unique() throws on >1 — treat as "already seen"
     if (existing) return null;
 
-    const verdict = evaluateSender(
-      args.fromAddress,
-      args.authResultsHeader ?? null,
-    );
+    // Verdict precedence: AgentMail's own auth classification is authoritative
+    // when present. If the mail provider flagged the sender as unauthenticated,
+    // force "couldn't verify" — keeping the honesty discipline (never "fake"/
+    // "spoofed"; unverified = we couldn't verify, not a fraud claim). Otherwise
+    // fall back to the header-based `evaluateSender` path, which is what our own
+    // simulated webhooks (no AgentMail event) rely on.
+    const verdict = args.agentmailUnauthenticated
+      ? {
+          verified: false,
+          reason:
+            "Sender failed authentication (flagged by the mail provider) — treat as lower confidence, not fake.",
+        }
+      : evaluateSender(args.fromAddress, args.authResultsHeader ?? null);
 
     const now = Date.now();
     const domain = domainFor(args.fromAddress, args.authResultsHeader ?? null);
     const eventId = await ctx.db.insert("events", {
       userId: args.userId,
       agentmailMsgId: args.agentmailMsgId,
+      agentmailInboxId: args.agentmailInboxId,
       fromAddress: args.fromAddress,
       subject: args.subject,
       rawText: args.rawText,
