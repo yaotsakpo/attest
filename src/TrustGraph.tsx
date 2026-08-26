@@ -1,47 +1,127 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useQuery } from "convex/react";
-import ForceGraph2D from "react-force-graph-2d";
 import { api } from "../convex/_generated/api";
 import { gradeFor } from "./grade";
 
-// A real force-directed trust graph (react-force-graph / d3-force).
-// Monochrome brand palette: emerald + white + gray on #0b0d12. Trust is encoded
-// by node SIZE and BRIGHTNESS (bigger/brighter = more trusted) rather than hue,
-// the convention elegant data tools use. Categorical red/F meaning lives in the
-// registry table where it belongs. Expandable to fullscreen; pan + zoom.
+// Ambient constellation trust-map, styled after emmanueltsakpo.click: a dense
+// field of faint white background particles with proximity-links (atmosphere),
+// with the REAL trust nodes (your agent + observed domains) rendered brighter
+// in emerald with labels on top. Monochrome white/gray + one emerald accent.
+// Drag to pan, scroll to zoom; expandable to fullscreen.
 
-const EMERALD = "52, 211, 153"; // rgb of #34d399
-const HUB = "#f3f4f6";
+const EMERALD = "110, 231, 183"; // #6ee7b7, the portfolio accent
 
-type GNode = {
-  id: string;
+type Ambient = { x: number; y: number; vx: number; vy: number; r: number; o: number };
+type Real = {
+  domain: string;
   label: string;
   kind: "hub" | "domain";
   score: number;
-  grade: string;
-  val: number;
-  bright: number; // 0.35..1 → node/label opacity from trust
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  r: number;
+  bright: number;
 };
-type GLink = { source: string; target: string };
+
+function draw(
+  ctx: CanvasRenderingContext2D,
+  w: number,
+  h: number,
+  amb: Ambient[],
+  real: Real[],
+  pan: { x: number; y: number; z: number },
+  linkDist: number,
+) {
+  ctx.clearRect(0, 0, w, h);
+  ctx.save();
+  ctx.translate(pan.x, pan.y);
+  ctx.scale(pan.z, pan.z);
+
+  // faint ambient mesh: links between nearby background particles
+  ctx.lineWidth = 1;
+  for (let i = 0; i < amb.length; i++) {
+    for (let j = i + 1; j < amb.length; j++) {
+      const dx = amb[i].x - amb[j].x;
+      const dy = amb[i].y - amb[j].y;
+      const d2 = dx * dx + dy * dy;
+      if (d2 < linkDist * linkDist) {
+        const a = (1 - Math.sqrt(d2) / linkDist) * 0.08;
+        ctx.strokeStyle = `rgba(255,255,255,${a})`;
+        ctx.beginPath();
+        ctx.moveTo(amb[i].x, amb[i].y);
+        ctx.lineTo(amb[j].x, amb[j].y);
+        ctx.stroke();
+      }
+    }
+  }
+  // ambient nodes
+  for (const p of amb) {
+    ctx.fillStyle = `rgba(255,255,255,${p.o})`;
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // links from hub to each real domain (emerald, brighter)
+  const hub = real.find((n) => n.kind === "hub");
+  if (hub) {
+    for (const n of real) {
+      if (n.kind === "hub") continue;
+      const grad = ctx.createLinearGradient(hub.x, hub.y, n.x, n.y);
+      grad.addColorStop(0, `rgba(${EMERALD}, 0.05)`);
+      grad.addColorStop(1, `rgba(${EMERALD}, ${0.15 + n.bright * 0.2})`);
+      ctx.strokeStyle = grad;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(hub.x, hub.y);
+      ctx.lineTo(n.x, n.y);
+      ctx.stroke();
+    }
+  }
+
+  // real nodes on top
+  for (const n of real) {
+    const isHub = n.kind === "hub";
+    ctx.shadowColor = isHub ? "rgba(255,255,255,0.9)" : `rgba(${EMERALD},1)`;
+    ctx.shadowBlur = isHub ? 18 : 10 + n.bright * 10;
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
+    ctx.fillStyle = isHub ? "#f3f4f6" : `rgba(${EMERALD}, ${0.55 + n.bright * 0.45})`;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    ctx.font = `11px "JetBrains Mono", monospace`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "top";
+    ctx.fillStyle = isHub ? "rgba(243,244,246,0.9)" : "rgba(156,163,175,0.85)";
+    ctx.fillText(n.label, n.x, n.y + n.r + 4);
+    if (!isHub) {
+      ctx.fillStyle = `rgba(${EMERALD}, ${0.6 + n.bright * 0.4})`;
+      ctx.font = `700 11px "JetBrains Mono", monospace`;
+      ctx.fillText(`${Math.round(n.score * 100)}`, n.x, n.y + n.r + 18);
+    }
+  }
+  ctx.restore();
+}
 
 export function TrustGraph() {
   const domains = useQuery(api.registry.listDomains);
   const wrapRef = useRef<HTMLDivElement | null>(null);
-  const fgRef = useRef<any>(null);
-  const [size, setSize] = useState({ w: 600, h: 300 });
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dataRef = useRef<{ domain: string; trustScore: number; v: number; u: number }[]>([]);
   const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
-    const el = wrapRef.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => {
-      setSize({ w: el.clientWidth, h: el.clientHeight || 300 });
-    });
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [expanded]);
+    dataRef.current = (domains ?? []).map((d) => ({
+      domain: d.domain,
+      trustScore: d.trustScore,
+      v: d.verifiedCount,
+      u: d.unverifiedCount,
+    }));
+  }, [domains]);
 
-  // lock background scroll while the fullscreen overlay is open
   useEffect(() => {
     if (!expanded) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
@@ -54,151 +134,174 @@ export function TrustGraph() {
     };
   }, [expanded]);
 
-  const graph = useMemo(() => {
-    const nodes: GNode[] = [
-      {
-        id: "__hub__",
-        label: "your agent",
-        kind: "hub",
-        score: 1,
-        grade: "A",
-        val: 6,
-        bright: 1,
-      },
-    ];
-    const links: GLink[] = [];
-    for (const d of domains ?? []) {
-      const g = gradeFor(d.trustScore, d.verifiedCount, d.unverifiedCount);
-      nodes.push({
-        id: d.domain,
-        label: d.domain,
-        kind: "domain",
-        score: d.trustScore,
-        grade: g,
-        val: 2 + d.trustScore * 6, // size = trust
-        bright: 0.35 + d.trustScore * 0.65, // brightness = trust
-      });
-      links.push({ source: "__hub__", target: d.domain });
-    }
-    return { nodes, links };
-  }, [domains]);
-
   useEffect(() => {
-    const fg = fgRef.current;
-    if (!fg) return;
-    fg.d3Force("charge")?.strength(-160);
-    fg.d3Force("link")?.distance(80);
-  }, [graph, expanded]);
+    const canvas = canvasRef.current;
+    const wrap = wrapRef.current;
+    if (!canvas || !wrap) return;
+    const ctx = canvas.getContext("2d")!;
+    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let w = 0, h = 0;
+    let amb: Ambient[] = [];
+    const real: Real[] = [];
+    const pan = { x: 0, y: 0, z: 1 };
+
+    function resize() {
+      w = wrap!.clientWidth;
+      h = wrap!.clientHeight || 300;
+      canvas!.width = w * dpr;
+      canvas!.height = h * dpr;
+      canvas!.style.width = w + "px";
+      canvas!.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      // ambient density ∝ area
+      const target = Math.round((w * h) / 5200);
+      amb = Array.from({ length: target }, () => ({
+        x: Math.random() * w,
+        y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.18,
+        vy: (Math.random() - 0.5) * 0.18,
+        r: 0.6 + Math.random() * 1.6,
+        o: 0.15 + Math.random() * 0.4,
+      }));
+    }
+    resize();
+    const ro = new ResizeObserver(resize);
+    ro.observe(wrap);
+
+    function syncReal() {
+      const data = dataRef.current;
+      // no hub until the agent has observed something (keeps empty-state clean)
+      if (data.length === 0) {
+        real.length = 0;
+        return;
+      }
+      if (!real.find((n) => n.kind === "hub")) {
+        real.push({ domain: "__hub__", label: "your agent", kind: "hub", score: 1, x: w / 2, y: h / 2, vx: 0, vy: 0, r: 9, bright: 1 });
+      }
+      const hub = real.find((n) => n.kind === "hub")!;
+      hub.x += (w / 2 - hub.x) * 0.05;
+      hub.y += (h / 2 - hub.y) * 0.05;
+      // add/update domain nodes
+      data.forEach((d, i) => {
+        const g = gradeFor(d.trustScore, d.v, d.u);
+        void g;
+        let n = real.find((x) => x.domain === d.domain);
+        const ang = (i / Math.max(1, data.length)) * Math.PI * 2 - Math.PI / 2;
+        const ring = Math.min(w, h) * 0.3;
+        if (!n) {
+          n = {
+            domain: d.domain, label: d.domain, kind: "domain", score: d.trustScore,
+            x: w / 2 + Math.cos(ang) * ring, y: h / 2 + Math.sin(ang) * ring,
+            vx: 0, vy: 0, r: 5 + d.trustScore * 8, bright: d.trustScore,
+          };
+          real.push(n);
+        } else {
+          n.score = d.trustScore;
+          n.r = 5 + d.trustScore * 8;
+          n.bright = d.trustScore;
+          // gentle pull toward its ring slot
+          const tx = w / 2 + Math.cos(ang) * ring;
+          const ty = h / 2 + Math.sin(ang) * ring;
+          n.x += (tx - n.x) * 0.02;
+          n.y += (ty - n.y) * 0.02;
+        }
+      });
+      // drop removed
+      for (let i = real.length - 1; i >= 0; i--) {
+        if (real[i].kind === "domain" && !data.find((d) => d.domain === real[i].domain)) real.splice(i, 1);
+      }
+    }
+
+    let raf = 0;
+    function frame() {
+      // drift ambient
+      for (const p of amb) {
+        p.x += p.vx; p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+      }
+      syncReal();
+      draw(ctx, w, h, amb, real, pan, 110);
+      if (!reduce) raf = requestAnimationFrame(frame);
+    }
+    frame();
+
+    // interaction: drag to pan, scroll to zoom
+    let dragging = false, lx = 0, ly = 0;
+    const onDown = (e: MouseEvent) => { dragging = true; lx = e.clientX; ly = e.clientY; };
+    const onMove = (e: MouseEvent) => {
+      if (!dragging) return;
+      pan.x += e.clientX - lx; pan.y += e.clientY - ly; lx = e.clientX; ly = e.clientY;
+      if (reduce) draw(ctx, w, h, amb, real, pan, 110);
+    };
+    const onUp = () => { dragging = false; };
+    const onWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const f = e.deltaY < 0 ? 1.08 : 0.92;
+      pan.z = Math.max(0.4, Math.min(4, pan.z * f));
+      if (reduce) draw(ctx, w, h, amb, real, pan, 110);
+    };
+    canvas.addEventListener("mousedown", onDown);
+    window.addEventListener("mousemove", onMove);
+    window.addEventListener("mouseup", onUp);
+    canvas.addEventListener("wheel", onWheel, { passive: false });
+
+    return () => {
+      cancelAnimationFrame(raf);
+      ro.disconnect();
+      canvas.removeEventListener("mousedown", onDown);
+      window.removeEventListener("mousemove", onMove);
+      window.removeEventListener("mouseup", onUp);
+      canvas.removeEventListener("wheel", onWheel);
+    };
+  }, [expanded]);
 
   const count = domains?.length ?? 0;
 
-  const draw = (node: any, ctx: CanvasRenderingContext2D, scale: number) => {
-    const n = node as GNode & { x: number; y: number };
-    const r = n.val;
-    const isHub = n.kind === "hub";
-    const fill = isHub ? HUB : `rgba(${EMERALD}, ${n.bright})`;
-    // glow
-    ctx.shadowColor = isHub ? HUB : `rgb(${EMERALD})`;
-    ctx.shadowBlur = 16 * n.bright;
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = fill;
-    ctx.fill();
-    ctx.shadowBlur = 0;
-    // label
-    const font = 11 / scale;
-    ctx.font = `${font}px "JetBrains Mono", monospace`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "top";
-    ctx.fillStyle = isHub ? "#f3f4f6" : `rgba(156,163,175,${0.5 + n.bright * 0.5})`;
-    ctx.fillText(n.label, n.x, n.y + r + 3 / scale);
-    if (n.kind === "domain") {
-      ctx.fillStyle = `rgba(${EMERALD}, ${n.bright})`;
-      ctx.font = `700 ${font}px "JetBrains Mono", monospace`;
-      ctx.fillText(
-        `${Math.round(n.score * 100)}`,
-        n.x,
-        n.y + r + 3 / scale + font + 2 / scale,
-      );
-    }
-  };
-
-  const Graph = ({ w, h }: { w: number; h: number }) => (
-    <ForceGraph2D
-      ref={fgRef}
-      width={w}
-      height={h}
-      graphData={graph}
-      backgroundColor="rgba(0,0,0,0)"
-      cooldownTicks={90}
-      d3VelocityDecay={0.3}
-      linkColor={() => `rgba(${EMERALD}, 0.25)`}
-      linkWidth={1}
-      linkDirectionalParticles={2}
-      linkDirectionalParticleWidth={2}
-      linkDirectionalParticleSpeed={0.006}
-      linkDirectionalParticleColor={() => `rgba(${EMERALD}, 0.9)`}
-      enableNodeDrag={true}
-      enableZoomInteraction={true}
-      enablePanInteraction={true}
-      nodeCanvasObject={draw}
-    />
+  const bar = (closeBtn: boolean) => (
+    <div className="term-bar">
+      <span className="term-lights">
+        <span className="term-light tl-r" />
+        <span className="term-light tl-y" />
+        <span className="term-light tl-g" />
+      </span>
+      <span className="term-path">agent@jobcopilot ~ trust-map</span>
+      <button className="term-expand" onClick={() => setExpanded(!closeBtn)}>
+        {closeBtn ? "✕ close" : "⤢ expand"}
+      </button>
+      {!closeBtn && (
+        <span className="term-tag">
+          {count} node{count === 1 ? "" : "s"}
+        </span>
+      )}
+    </div>
   );
 
   return (
     <>
       <div className="term">
-        <div className="term-bar">
-          <span className="term-lights">
-            <span className="term-light tl-r" />
-            <span className="term-light tl-y" />
-            <span className="term-light tl-g" />
-          </span>
-          <span className="term-path">agent@jobcopilot ~ trust-map</span>
-          <button
-            className="term-expand"
-            onClick={() => setExpanded(true)}
-            aria-label="Expand trust map"
-            title="Expand"
-          >
-            ⤢ expand
-          </button>
-          <span className="term-tag">
-            {count} node{count === 1 ? "" : "s"}
-          </span>
-        </div>
+        {bar(false)}
         <div className="graph-webgl" ref={wrapRef}>
-          {count === 0 ? (
+          <canvas ref={canvasRef} className="graph-canvas" />
+          {count === 0 && (
             <p className="graph-empty">
               The map fills as your agent observes authenticated email.
             </p>
-          ) : (
-            <>
-              <Graph w={size.w} h={size.h} />
-              <span className="graph-hint-inline">drag · scroll to zoom</span>
-            </>
           )}
+          {count > 0 && <span className="graph-hint-inline">drag · scroll to zoom</span>}
         </div>
       </div>
 
       {expanded && (
         <div className="graph-overlay" onClick={() => setExpanded(false)}>
           <div className="graph-modal" onClick={(e) => e.stopPropagation()}>
-            <div className="term-bar">
-              <span className="term-lights">
-                <span className="term-light tl-r" />
-                <span className="term-light tl-y" />
-                <span className="term-light tl-g" />
-              </span>
-              <span className="term-path">agent@jobcopilot ~ trust-map</span>
-              <button className="term-expand" onClick={() => setExpanded(false)}>
-                ✕ close
-              </button>
-            </div>
+            {bar(true)}
             <div className="graph-modal-body">
-              <FullGraph draw={draw} graph={graph} fgRef={fgRef} />
+              {/* reuse same canvas engine at modal size via a nested instance */}
+              <TrustGraphCanvas />
             </div>
-            <div className="graph-hint">drag to move · scroll to zoom · drag nodes · esc to close</div>
+            <div className="graph-hint">drag to move · scroll to zoom · esc to close</div>
           </div>
         </div>
       )}
@@ -206,38 +309,66 @@ export function TrustGraph() {
   );
 }
 
-// Fullscreen graph fills its modal body via its own ResizeObserver.
-function FullGraph({ draw, graph, fgRef }: any) {
-  const ref = useRef<HTMLDivElement | null>(null);
-  const [s, setS] = useState({ w: 900, h: 600 });
+// A standalone canvas instance for the fullscreen modal (its own sizing loop).
+function TrustGraphCanvas() {
+  const domains = useQuery(api.registry.listDomains);
+  const wrapRef = useRef<HTMLDivElement | null>(null);
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+  const dataRef = useRef<{ domain: string; trustScore: number; v: number; u: number }[]>([]);
   useEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const ro = new ResizeObserver(() => setS({ w: el.clientWidth, h: el.clientHeight }));
-    ro.observe(el);
-    return () => ro.disconnect();
+    dataRef.current = (domains ?? []).map((d) => ({ domain: d.domain, trustScore: d.trustScore, v: d.verifiedCount, u: d.unverifiedCount }));
+  }, [domains]);
+  useEffect(() => {
+    const canvas = canvasRef.current, wrap = wrapRef.current;
+    if (!canvas || !wrap) return;
+    const ctx = canvas.getContext("2d")!;
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let w = 0, h = 0; let amb: Ambient[] = []; const real: Real[] = [];
+    const pan = { x: 0, y: 0, z: 1 };
+    function resize() {
+      w = wrap!.clientWidth; h = wrap!.clientHeight || 500;
+      canvas!.width = w * dpr; canvas!.height = h * dpr;
+      canvas!.style.width = w + "px"; canvas!.style.height = h + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      amb = Array.from({ length: Math.round((w * h) / 9000) }, () => ({
+        x: Math.random() * w, y: Math.random() * h,
+        vx: (Math.random() - 0.5) * 0.18, vy: (Math.random() - 0.5) * 0.18,
+        r: 0.6 + Math.random() * 1.6, o: 0.15 + Math.random() * 0.4,
+      }));
+    }
+    resize();
+    const ro = new ResizeObserver(resize); ro.observe(wrap);
+    function syncReal() {
+      const data = dataRef.current;
+      if (!real.find((n) => n.kind === "hub")) real.push({ domain: "__hub__", label: "your agent", kind: "hub", score: 1, x: w / 2, y: h / 2, vx: 0, vy: 0, r: 10, bright: 1 });
+      const hub = real.find((n) => n.kind === "hub")!;
+      hub.x += (w / 2 - hub.x) * 0.05; hub.y += (h / 2 - hub.y) * 0.05;
+      data.forEach((d, i) => {
+        let n = real.find((x) => x.domain === d.domain);
+        const ang = (i / Math.max(1, data.length)) * Math.PI * 2 - Math.PI / 2;
+        const ring = Math.min(w, h) * 0.32;
+        if (!n) { real.push({ domain: d.domain, label: d.domain, kind: "domain", score: d.trustScore, x: w / 2 + Math.cos(ang) * ring, y: h / 2 + Math.sin(ang) * ring, vx: 0, vy: 0, r: 6 + d.trustScore * 10, bright: d.trustScore }); }
+        else { n.score = d.trustScore; n.r = 6 + d.trustScore * 10; n.bright = d.trustScore; const tx = w / 2 + Math.cos(ang) * ring, ty = h / 2 + Math.sin(ang) * ring; n.x += (tx - n.x) * 0.02; n.y += (ty - n.y) * 0.02; }
+      });
+      for (let i = real.length - 1; i >= 0; i--) if (real[i].kind === "domain" && !data.find((d) => d.domain === real[i].domain)) real.splice(i, 1);
+    }
+    let raf = 0;
+    function frame() {
+      for (const p of amb) { p.x += p.vx; p.y += p.vy; if (p.x < 0 || p.x > w) p.vx *= -1; if (p.y < 0 || p.y > h) p.vy *= -1; }
+      syncReal(); draw(ctx, w, h, amb, real, pan, 130); raf = requestAnimationFrame(frame);
+    }
+    frame();
+    let dragging = false, lx = 0, ly = 0;
+    const onDown = (e: MouseEvent) => { dragging = true; lx = e.clientX; ly = e.clientY; };
+    const onMove = (e: MouseEvent) => { if (!dragging) return; pan.x += e.clientX - lx; pan.y += e.clientY - ly; lx = e.clientX; ly = e.clientY; };
+    const onUp = () => { dragging = false; };
+    const onWheel = (e: WheelEvent) => { e.preventDefault(); pan.z = Math.max(0.4, Math.min(4, pan.z * (e.deltaY < 0 ? 1.08 : 0.92))); };
+    canvas.addEventListener("mousedown", onDown); window.addEventListener("mousemove", onMove); window.addEventListener("mouseup", onUp); canvas.addEventListener("wheel", onWheel, { passive: false });
+    return () => { cancelAnimationFrame(raf); ro.disconnect(); canvas.removeEventListener("mousedown", onDown); window.removeEventListener("mousemove", onMove); window.removeEventListener("mouseup", onUp); canvas.removeEventListener("wheel", onWheel); };
   }, []);
-  const EM = "52, 211, 153";
   return (
-    <div ref={ref} style={{ width: "100%", height: "100%" }}>
-      <ForceGraph2D
-        ref={fgRef}
-        width={s.w}
-        height={s.h}
-        graphData={graph}
-        backgroundColor="rgba(0,0,0,0)"
-        cooldownTicks={120}
-        linkColor={() => `rgba(${EM}, 0.25)`}
-        linkWidth={1}
-        linkDirectionalParticles={2}
-        linkDirectionalParticleWidth={2.4}
-        linkDirectionalParticleSpeed={0.006}
-        linkDirectionalParticleColor={() => `rgba(${EM}, 0.9)`}
-        enableNodeDrag={true}
-        enableZoomInteraction={true}
-        enablePanInteraction={true}
-        nodeCanvasObject={draw}
-      />
+    <div ref={wrapRef} style={{ width: "100%", height: "100%" }}>
+      <canvas ref={canvasRef} className="graph-canvas" />
     </div>
   );
 }
