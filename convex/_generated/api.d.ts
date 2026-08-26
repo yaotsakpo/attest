@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as activity from "../activity.js";
 import type * as auth from "../auth.js";
 import type * as board from "../board.js";
 import type * as dev from "../dev.js";
@@ -32,6 +33,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  activity: typeof activity;
   auth: typeof auth;
   board: typeof board;
   dev: typeof dev;

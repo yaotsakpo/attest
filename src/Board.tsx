@@ -31,24 +31,25 @@ function Status({ state }: { state: string }) {
   );
 }
 
-// The pipeline — evidence that feeds the registry. Cards animate in as email
-// lands and advance forward-only. Secondary to the registry above.
+// The pipeline — evidence the registry is built from. Cards animate in as email
+// lands and advance forward-only.
 export function Board() {
   const apps = useQuery(api.board.myApplications);
 
   return (
-    <section>
+    <section className="section">
       <div className="section-head">
-        <h2 className="section-title">My Pipeline</h2>
+        <span className="section-label">[ pipeline ]</span>
+        <h2 className="section-title">My applications</h2>
         <span className="section-note">
-          Every card here is the evidence the registry is built from.
+          Each card is a real recruiter thread the registry learned from.
         </span>
       </div>
       {apps === undefined ? (
         <p className="muted">Loading…</p>
       ) : apps.length === 0 ? (
         <p className="muted">
-          No applications yet. When a recruiter emails your inbox, a card appears
+          No applications yet. When a recruiter emails your agent, a card appears
           here on its own.
         </p>
       ) : (

@@ -15,20 +15,19 @@ function timeAgo(ts: number, now: number): string {
   return `${Math.floor(h / 24)}d ago`;
 }
 
-// The trust registry — the star of the screen. A dense, sortable, factual table
-// in the DNA of SSL Labs / crt.sh / Cloudflare Radar: grade box, monospace
-// domain + score + last-seen, semantic color only on the grade, hairline rows.
+// The trust registry — the hero. Dense, sortable, factual: grade box, monospace
+// domain/score/last-seen, semantic color only on the grade, hairline rows.
 export function Registry() {
   const domains = useQuery(api.registry.listDomains);
   const [sort, setSort] = useState<SortKey>("score");
   const [desc, setDesc] = useState(true);
   const now = Date.now();
 
-  function header(key: SortKey, label: string, extra = "") {
+  function th(key: SortKey, label: string, extra = "") {
     const active = sort === key;
     return (
       <th
-        className={active ? "sorted " + extra : extra}
+        className={`sortable ${active ? "sorted" : ""} ${extra}`}
         onClick={() => {
           if (active) setDesc(!desc);
           else {
@@ -49,31 +48,43 @@ export function Registry() {
     else if (sort === "domain") d = a.domain.localeCompare(b.domain);
     else if (sort === "sightings")
       d =
-        a.verifiedCount + a.unverifiedCount - (b.verifiedCount + b.unverifiedCount);
+        a.verifiedCount +
+        a.unverifiedCount -
+        (b.verifiedCount + b.unverifiedCount);
     else d = a.lastSeen - b.lastSeen;
     return desc ? -d : d;
   });
 
   return (
-    <section>
+    <section className="section">
       <div className="section-head">
-        <h2 className="section-title">Trust Registry</h2>
+        <span className="section-label">[ registry ]</span>
+        <h2 className="section-title">Domains my agent trusts</h2>
         <span className="section-note">
-          Domains ranked by observed authenticated email, not search ranking. An
-          agent can query this at <code>GET /registry/domains</code>.
+          Earned from observed authenticated email, not search ranking.
         </span>
       </div>
 
-      <div className="registry-wrap">
-        <table className="registry">
+      <div className="term">
+        <div className="term-bar">
+          <span className="term-lights">
+            <span className="term-light tl-r" />
+            <span className="term-light tl-y" />
+            <span className="term-light tl-g" />
+          </span>
+          <span className="term-path">$ GET /registry/domains</span>
+          <span className="term-tag">live</span>
+        </div>
+        <div className="term-body table-scroll">
+        <table className="data registry-cols">
           <thead>
             <tr>
               <th className="rank">#</th>
               <th>Grade</th>
-              {header("domain", "Domain")}
-              {header("score", "Score", "num")}
-              {header("sightings", "Verified / Total", "num")}
-              {header("lastSeen", "Last seen", "num")}
+              {th("domain", "Domain")}
+              {th("score", "Score", "num")}
+              {th("sightings", "Verified / Total", "num")}
+              {th("lastSeen", "Last seen", "num")}
             </tr>
           </thead>
           <tbody>
@@ -86,8 +97,8 @@ export function Registry() {
             ) : rows.length === 0 ? (
               <tr>
                 <td className="empty" colSpan={6}>
-                  No domains observed yet. When email arrives, each sending
-                  domain earns a trust score here.
+                  No domains observed yet. Each sender that emails your agent
+                  earns a trust grade here.
                 </td>
               </tr>
             ) : (
@@ -105,18 +116,29 @@ export function Registry() {
                     <td>
                       <span className={`grade grade-${g}`}>{g}</span>
                     </td>
-                    <td className="domain">{d.domain}</td>
-                    <td className="num">{(d.trustScore * 100).toFixed(0)}</td>
+                    <td className="m">{d.domain}</td>
+                    <td className="num">
+                      <span className="score-cell">
+                        <span className="score-bar">
+                          <span
+                            className={`score-fill fill-${g}`}
+                            style={{ width: `${Math.round(d.trustScore * 100)}%` }}
+                          />
+                        </span>
+                        {(d.trustScore * 100).toFixed(0)}
+                      </span>
+                    </td>
                     <td className="num">
                       {d.verifiedCount} / {total}
                     </td>
-                    <td className="num seen">{timeAgo(d.lastSeen, now)}</td>
+                    <td className="num dim">{timeAgo(d.lastSeen, now)}</td>
                   </tr>
                 );
               })
             )}
           </tbody>
         </table>
+        </div>
       </div>
     </section>
   );

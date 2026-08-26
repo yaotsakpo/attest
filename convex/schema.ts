@@ -68,6 +68,10 @@ export default defineSchema({
       v.union(v.literal("auto_answer"), v.literal("hold_for_approval")),
     ),
     gateReason: v.optional(v.string()),
+    // For held items: has the user resolved it? (approved to release / dismissed)
+    gateResolved: v.optional(
+      v.union(v.literal("approved"), v.literal("dismissed")),
+    ),
   })
     .index("by_user", ["userId"])
     .index("by_msg", ["agentmailMsgId"]),

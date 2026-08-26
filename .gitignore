@@ -22,3 +22,8 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Local strategy/design docs — never publish
+docs/superpowers/
+.impeccable.md
+.env.local

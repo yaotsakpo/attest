@@ -50,6 +50,12 @@ export const peek = internalQuery({
       })),
       eventCount: events.length,
       domains: domains.map((d) => ({ domain: d.domain, score: d.trustScore })),
+      decisions: events.map((e) => ({
+        from: e.fromAddress,
+        verified: e.senderVerified,
+        sensitive: e.sensitiveRequest ?? false,
+        gate: e.gateAction ?? null,
+      })),
     };
   },
 });

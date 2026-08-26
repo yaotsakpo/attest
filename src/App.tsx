@@ -1,8 +1,11 @@
 import { type FormEvent, useState } from "react";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
-import { Board } from "./Board";
 import { Registry } from "./Registry";
+import { Board } from "./Board";
+import { Vault } from "./Vault";
+import { TrustGraph } from "./TrustGraph";
+import { Activity } from "./Activity";
 import "./App.css";
 
 const MIN_PASSWORD = 8;
@@ -19,27 +22,20 @@ function SignIn() {
     const form = new FormData(e.currentTarget);
     const email = String(form.get("email"));
     const password = String(form.get("password"));
-
-    // Tell the user the real requirement BEFORE a round-trip.
     if (password.length < MIN_PASSWORD) {
       setError(`Password must be at least ${MIN_PASSWORD} characters.`);
       return;
     }
-
     setSubmitting(true);
     try {
       await signIn("password", { email, password, flow });
     } catch (err) {
-      // Convex Auth throws "Invalid password" for the default length rule, and
-      // a generic error for bad credentials on sign-in. Translate honestly.
       const msg = err instanceof Error ? err.message : "";
-      if (/invalid password/i.test(msg)) {
+      if (/invalid password/i.test(msg))
         setError(`Password must be at least ${MIN_PASSWORD} characters.`);
-      } else if (flow === "signIn") {
-        setError("Wrong email or password.");
-      } else {
+      else if (flow === "signIn") setError("Wrong email or password.");
+      else
         setError("Couldn’t create your account. That email may already be in use.");
-      }
     } finally {
       setSubmitting(false);
     }
@@ -50,7 +46,8 @@ function SignIn() {
       <form className="auth-card" onSubmit={onSubmit}>
         <h1 className="auth-title">Job Copilot</h1>
         <p className="auth-sub">
-          The copilot that watches your job search and learns who to trust.
+          An agent that answers recruiters for you, and won’t hand your info to a
+          sender it can’t verify.
         </p>
         <input name="email" type="email" placeholder="you@email.com" required />
         <input
@@ -60,12 +57,8 @@ function SignIn() {
           minLength={MIN_PASSWORD}
           required
         />
-        <button type="submit" disabled={submitting}>
-          {submitting
-            ? "…"
-            : flow === "signUp"
-              ? "Create account"
-              : "Sign in"}
+        <button type="submit" className="btn btn-primary" disabled={submitting}>
+          {submitting ? "…" : flow === "signUp" ? "Create account" : "Sign in"}
         </button>
         {error && <p className="auth-error">{error}</p>}
         <button
@@ -84,22 +77,45 @@ function SignIn() {
 
 function Dashboard() {
   const { signOut } = useAuthActions();
+  const [view, setView] = useState<"home" | "vault">("home");
+
   return (
     <div className="app">
       <header className="app-header">
-        <div>
+        <div className="brand">
           <h1 className="app-title">Job Copilot</h1>
-          <p className="app-tagline">
-            An agent learning which domains to trust, from your real job search.
-          </p>
+          <span className="app-tagline">trust registry for your agent</span>
         </div>
-        <button className="link" onClick={() => void signOut()}>
-          Sign out
-        </button>
+        <div className="header-actions">
+          <button
+            className={`btn ${view === "home" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setView("home")}
+          >
+            Dashboard
+          </button>
+          <button
+            className={`btn ${view === "vault" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() => setView("vault")}
+          >
+            Vault
+          </button>
+          <button className="btn btn-ghost" onClick={() => void signOut()}>
+            Sign out
+          </button>
+        </div>
       </header>
+
       <main>
-        <Registry />
-        <Board />
+        {view === "home" ? (
+          <>
+            <TrustGraph />
+            <Activity />
+            <Registry />
+            <Board />
+          </>
+        ) : (
+          <Vault />
+        )}
       </main>
     </div>
   );
@@ -109,7 +125,7 @@ export default function App() {
   return (
     <>
       <AuthLoading>
-        <p className="muted center">Loading…</p>
+        <p className="center">Loading…</p>
       </AuthLoading>
       <Unauthenticated>
         <SignIn />
