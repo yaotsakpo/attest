@@ -1,4 +1,5 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
@@ -34,6 +35,11 @@ export const observeDomain = internalMutation({
         trustScore: computeTrustScore(verifiedCount, unverifiedCount),
         firstSeen: args.at,
         lastSeen: args.at,
+      });
+      // First time we've seen this counterpart → enrich it with Firecrawl so we
+      // know who it is. Non-blocking; no-ops without a Firecrawl key.
+      await ctx.scheduler.runAfter(0, internal.enrich.scrapeDomain, {
+        domain: args.domain,
       });
       return null;
     }
@@ -131,6 +137,9 @@ export const listDomains = query({
       lastSeen: v.number(),
       isHub: v.optional(v.boolean()),
       hubCompanyCount: v.optional(v.number()),
+      enrichTitle: v.optional(v.string()),
+      enrichDescription: v.optional(v.string()),
+      enrichedAt: v.optional(v.number()),
     }),
   ),
   handler: async (ctx): Promise<Doc<"domains">[]> => {

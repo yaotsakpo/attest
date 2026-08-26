@@ -108,6 +108,11 @@ export default defineSchema({
     // from the `domainEdges` table and kept in sync in the same mutation.
     isHub: v.optional(v.boolean()),
     hubCompanyCount: v.optional(v.number()),
+    // Firecrawl enrichment: who this counterpart actually is, scraped from its
+    // own site. Lets the agent (and you) know who you're about to share with.
+    enrichTitle: v.optional(v.string()),
+    enrichDescription: v.optional(v.string()),
+    enrichedAt: v.optional(v.number()),
   }).index("by_domain", ["domain"]),
 
   // The trust GRAPH's edges: one row per (hub -> company) relationship, learned

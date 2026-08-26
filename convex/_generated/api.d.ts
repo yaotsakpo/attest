@@ -13,6 +13,7 @@ import type * as agentmail from "../agentmail.js";
 import type * as auth from "../auth.js";
 import type * as board from "../board.js";
 import type * as dev from "../dev.js";
+import type * as enrich from "../enrich.js";
 import type * as events from "../events.js";
 import type * as extract from "../extract.js";
 import type * as http from "../http.js";
@@ -39,6 +40,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   board: typeof board;
   dev: typeof dev;
+  enrich: typeof enrich;
   events: typeof events;
   extract: typeof extract;
   http: typeof http;

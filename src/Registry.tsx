@@ -134,7 +134,19 @@ export function Registry() {
                     <td>
                       <span className={`grade grade-${g}`}>{g}</span>
                     </td>
-                    <td className="m">{d.domain}</td>
+                    <td className="m">
+                      <div className="domain-cell">
+                        <span>{d.domain}</span>
+                        {d.enrichTitle && (
+                          <span
+                            className="domain-enrich"
+                            title={d.enrichDescription ?? undefined}
+                          >
+                            {d.enrichTitle}
+                          </span>
+                        )}
+                      </div>
+                    </td>
                     <td className="num">
                       <span className="score-cell">
                         <span className="score-bar">
