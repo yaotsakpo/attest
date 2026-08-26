@@ -3,6 +3,7 @@ import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { gradeFor } from "./grade";
 import { SkeletonRows } from "./Activity";
+import { ExpandablePanel } from "./ExpandablePanel";
 
 const PAGE = 50;
 
@@ -26,6 +27,7 @@ export function Registry() {
   const [desc, setDesc] = useState(true);
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(PAGE);
+  const [expanded, setExpanded] = useState(false);
   const now = Date.now();
 
   function th(key: SortKey, label: string, extra = "") {
@@ -77,14 +79,11 @@ export function Registry() {
         </span>
       </div>
 
-      <div className="term">
-        <div className="term-bar">
-          <span className="term-lights">
-            <span className="term-light tl-r" />
-            <span className="term-light tl-y" />
-            <span className="term-light tl-g" />
-          </span>
-          <span className="term-path">$ GET /registry/domains</span>
+      <ExpandablePanel
+        path="$ GET /registry/domains"
+        expanded={expanded}
+        onToggle={setExpanded}
+        tag={
           <input
             className="table-search"
             placeholder="search domain…"
@@ -95,8 +94,9 @@ export function Registry() {
             }}
             aria-label="Search domains"
           />
-        </div>
-        <div className="term-body table-scroll">
+        }
+      >
+        <div className="table-scroll">
         <table className="data registry-cols">
           <thead>
             <tr>
@@ -162,7 +162,7 @@ export function Registry() {
             Load more ({all.length - shown} more)
           </button>
         )}
-      </div>
+      </ExpandablePanel>
     </section>
   );
 }
