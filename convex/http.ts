@@ -1,6 +1,8 @@
 import { httpRouter } from "convex/server";
 import { httpAction } from "./_generated/server";
 import { internal } from "./_generated/api";
+import { components } from "./_generated/api";
+import { registerStaticRoutes } from "@convex-dev/static-hosting";
 import { auth } from "./auth";
 
 const http = httpRouter();
@@ -169,6 +171,11 @@ http.route({
     });
   }),
 });
+
+// The static site (the built frontend) is served by a catch-all from the
+// static-hosting component. Registered LAST — our exact routes above
+// (/webhooks/agentmail, /registry/domains, auth) win over the catch-all.
+registerStaticRoutes(http, components.staticHosting);
 
 export default http;
 
