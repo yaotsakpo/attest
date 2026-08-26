@@ -164,7 +164,7 @@ export function TrustGraph() {
       n.fx = n.x;
       n.fy = n.y;
     }
-    fgRef.current?.zoomToFit(400, 30);
+    fgRef.current?.zoomToFit(400, 55);
   }, [graphData]);
 
   // when data changes, unfreeze so new nodes can settle, then it re-freezes
