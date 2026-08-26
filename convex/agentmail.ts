@@ -38,35 +38,19 @@ export const provisionInbox = action({
       };
     }
 
-    // Prefer reusing an inbox that already exists on the AgentMail account
-    // (e.g. the demo inbox) rather than always minting a new one.
-    let inbox: { inbox_id: string; email: string } | null = null;
-    try {
-      const listRes = await fetch(`${BASE}/inboxes`, { headers: headers() });
-      if (listRes.ok) {
-        const list = (await listRes.json()) as {
-          inboxes?: { inbox_id: string; email: string }[];
-        };
-        if (list.inboxes && list.inboxes.length > 0) {
-          inbox = list.inboxes[0];
-        }
-      }
-    } catch {
-      // fall through to create
+    // Mint THIS user's own inbox under the Warden-owned AgentMail account.
+    // `client_id` is per-user and idempotent, so a retry returns the same inbox
+    // instead of creating a duplicate — and, crucially, two different users
+    // never collide onto one shared inbox.
+    const res = await fetch(`${BASE}/inboxes`, {
+      method: "POST",
+      headers: headers(),
+      body: JSON.stringify({ client_id: `warden-${userId}` }),
+    });
+    if (!res.ok) {
+      throw new Error(`AgentMail create inbox failed: ${res.status}`);
     }
-
-    if (!inbox) {
-      // create a fresh inbox (client_id makes it idempotent per user)
-      const res = await fetch(`${BASE}/inboxes`, {
-        method: "POST",
-        headers: headers(),
-        body: JSON.stringify({ client_id: `warden-${userId}` }),
-      });
-      if (!res.ok) {
-        throw new Error(`AgentMail create inbox failed: ${res.status}`);
-      }
-      inbox = (await res.json()) as { inbox_id: string; email: string };
-    }
+    const inbox = (await res.json()) as { inbox_id: string; email: string };
 
     await ctx.runMutation(internal.profiles.create, {
       userId,

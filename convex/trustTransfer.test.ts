@@ -10,6 +10,13 @@ const modules = import.meta.glob("./**/*.ts");
 
 type TestHarness = TestConvex<typeof schema>;
 
+// getAuthUserId(ctx) returns identity.subject. Querying as the seeded user makes
+// the per-user registry scoping (visibleDomainsForUser) resolve to that user's
+// own correspondents instead of an empty signed-out set.
+function asUser(t: TestHarness, userId: Id<"users">) {
+  return t.withIdentity({ subject: userId, tokenIdentifier: `test|${userId}` });
+}
+
 // Seed a user + profile (an inbox owner) and return the user id.
 async function seedUser(t: TestHarness): Promise<Id<"users">> {
   return await t.run(async (ctx) => {
@@ -224,7 +231,7 @@ test("trustGraph: hub/company/direct kinds, viaHub propagation, inheritedTrust, 
     authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=acme.com",
   });
 
-  const graph = await t.query(api.registry.trustGraph, {});
+  const graph = await asUser(t, userId).query(api.registry.trustGraph, {});
   const byId = new Map(graph.nodes.map((n) => [n.id, n]));
 
   // Hub node.
@@ -262,4 +269,67 @@ test("trustGraph: hub/company/direct kinds, viaHub propagation, inheritedTrust, 
     "globex.com",
     "initech.com",
   ]);
+});
+
+// The trust scores are global (collective reputation), but a user only ever SEES
+// the domains their OWN agent corresponded with. User B must never see a domain
+// that only ever emailed User A — no cross-tenant peeking.
+test("registry is per-user visible: user B never sees user A's correspondents", async () => {
+  const t = convexTest(schema, modules);
+
+  const alice = await t.run(async (ctx) => {
+    const uid = await ctx.db.insert("users", {});
+    await ctx.db.insert("profiles", {
+      userId: uid,
+      agentmailInbox: "alice@agentmail.to",
+      agentmailInboxId: "inbox_alice",
+    });
+    return uid;
+  });
+  const bob = await t.run(async (ctx) => {
+    const uid = await ctx.db.insert("users", {});
+    await ctx.db.insert("profiles", {
+      userId: uid,
+      agentmailInbox: "bob@agentmail.to",
+      agentmailInboxId: "inbox_bob",
+    });
+    return uid;
+  });
+
+  // Alice corresponds with alicecorp.com; Bob with bobcorp.com.
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId: alice,
+    agentmailMsgId: "a_msg",
+    fromAddress: "team@alicecorp.com",
+    subject: "Hi Alice",
+    rawText: "Hello.",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=alicecorp.com",
+  });
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId: bob,
+    agentmailMsgId: "b_msg",
+    fromAddress: "team@bobcorp.com",
+    subject: "Hi Bob",
+    rawText: "Hello.",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=bobcorp.com",
+  });
+
+  // Both domains exist GLOBALLY in the registry table…
+  const globalCount = await t.run(async (ctx) => {
+    const rows = await ctx.db.query("domains").take(100);
+    return rows.map((r) => r.domain).sort();
+  });
+  expect(globalCount).toEqual(["alicecorp.com", "bobcorp.com"]);
+
+  // …but Alice's listDomains shows ONLY alicecorp.com, and Bob's ONLY bobcorp.com.
+  const aliceList = await asUser(t, alice).query(api.registry.listDomains, {});
+  const bobList = await asUser(t, bob).query(api.registry.listDomains, {});
+  expect(aliceList.map((d) => d.domain)).toEqual(["alicecorp.com"]);
+  expect(bobList.map((d) => d.domain)).toEqual(["bobcorp.com"]);
+
+  // Same isolation on the trust graph.
+  const aliceGraph = await asUser(t, alice).query(api.registry.trustGraph, {});
+  const bobGraph = await asUser(t, bob).query(api.registry.trustGraph, {});
+  expect(aliceGraph.nodes.map((n) => n.id)).toEqual(["alicecorp.com"]);
+  expect(bobGraph.nodes.map((n) => n.id)).toEqual(["bobcorp.com"]);
 });

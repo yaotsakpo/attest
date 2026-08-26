@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
-import { computeTrustScore } from "./lib/trustScore";
+import { computeTrustScore, fromDomainOf } from "./lib/trustScore";
 import { gradeFor, type Grade } from "./lib/grade";
 
 // Record one observation of a sending domain into the trust registry. Called
@@ -120,9 +120,36 @@ export const observeEdge = internalMutation({
   },
 });
 
-// The live registry for the UI panel — domains this agent has learned to trust,
-// most-trusted first. Public read; the registry is not user-private (it's the
-// agent's map of the internet), but we bound the read.
+// The set of domains the signed-in user's OWN agent has actually corresponded
+// with. The trust registry is global under the hood (a collective reputation
+// network — every user's observations sharpen the scores), but a user only ever
+// SEES the domains their own inbox received mail from. No cross-tenant peeking:
+// you can't see a domain you never emailed, even though its score is global.
+async function visibleDomainsForUser(
+  ctx: { db: any; auth: any },
+): Promise<Set<string> | null> {
+  const userId = await getAuthUserId(ctx as any);
+  if (!userId) return new Set(); // signed-out: see nothing
+  const events = await ctx.db
+    .query("events")
+    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .take(1000);
+  const set = new Set<string>();
+  for (const e of events) {
+    // The AUTHENTICATED domain (a hub like greenhouse.io on a mismatch, else the
+    // sender itself)…
+    if (e.registryDomain) set.add(e.registryDomain);
+    // …AND the From-address company (globex.com reached through the hub). Both
+    // are counterparts THIS user actually heard from, so both are theirs to see.
+    const company = fromDomainOf(e.fromAddress);
+    if (company) set.add(company);
+  }
+  return set;
+}
+
+// The live registry for the UI panel — the domains THIS user's agent has learned
+// to trust, most-trusted first. Scores are global (collective reputation), but
+// the rows are filtered to the user's own correspondents.
 export const listDomains = query({
   args: {},
   returns: v.array(
@@ -143,8 +170,11 @@ export const listDomains = query({
     }),
   ),
   handler: async (ctx): Promise<Doc<"domains">[]> => {
+    const visible = await visibleDomainsForUser(ctx);
     const rows = await ctx.db.query("domains").take(500);
-    return rows.sort((a, b) => b.trustScore - a.trustScore);
+    return rows
+      .filter((r) => visible === null || visible.has(r.domain))
+      .sort((a, b) => b.trustScore - a.trustScore);
   },
 });
 
@@ -199,9 +229,15 @@ export const domainsWithDecisions = query({
     }
 
     return domains
+      // only domains THIS user's agent actually corresponded with
+      .filter((d) => byDomain.has(d.domain))
       .map((d) => {
         const evs = byDomain.get(d.domain) ?? [];
-        const heldEv = evs.find((e) => e.gateAction === "hold_for_approval");
+        // Only UNRESOLVED holds count as "held" — once the user approves or
+        // dismisses, the graph should stop flagging it.
+        const heldEv = evs.find(
+          (e) => e.gateAction === "hold_for_approval" && !e.gateResolved,
+        );
         const askedSensitive = evs.some((e) => e.sensitiveRequest === true);
         return {
           domain: d.domain,
@@ -339,8 +375,25 @@ export const trustGraph = query({
     ),
   }),
   handler: async (ctx): Promise<TrustGraph> => {
-    const domains = await ctx.db.query("domains").take(1000);
-    const edges = await ctx.db.query("domainEdges").take(2000);
+    const visible = await visibleDomainsForUser(ctx);
+    const allDomains = await ctx.db.query("domains").take(1000);
+    const allEdges = await ctx.db.query("domainEdges").take(2000);
+
+    // Show only what THIS user's agent saw. Keep an edge if its company is one
+    // the user corresponded with; the hub (a shared ATS like greenhouse.io) may
+    // ride along even if never emailed directly — it's public infra that vouches
+    // for a company the user DID see, not another user's private contact.
+    const edges =
+      visible === null
+        ? allEdges
+        : allEdges.filter((e) => visible.has(e.company));
+    const hubsInScope = new Set(edges.map((e) => e.hub));
+    const domains =
+      visible === null
+        ? allDomains
+        : allDomains.filter(
+            (d) => visible.has(d.domain) || hubsInScope.has(d.domain),
+          );
 
     // Index domains by name for O(1) lookup.
     const domainByName = new Map<string, Doc<"domains">>();
