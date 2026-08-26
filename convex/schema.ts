@@ -134,6 +134,44 @@ export default defineSchema({
     .index("by_company", ["company"])
     .index("by_hub_and_company", ["hub", "company"]),
 
+  // CONTINUITY state per (user, counterpart). On a trusted first contact we seed
+  // the counterpart (a key our reply carries, which every Attest agent decodes);
+  // thereafter every message must carry the forward-secret response. `seed` is
+  // the shared secret; `counter` is the ratchet step; `status` is the last
+  // verdict. See convex/lib/continuity.ts (crypto) + continuityState.ts (machine).
+  continuity: defineTable({
+    userId: v.id("users"),
+    counterpart: v.string(), // the counterpart domain we track continuity for
+    seed: v.string(),
+    seeded: v.boolean(),
+    counter: v.number(),
+    status: v.union(
+      v.literal("pending"),
+      v.literal("confirmed"),
+      v.literal("takeover_suspected"),
+    ),
+    updatedAt: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_counterpart", ["userId", "counterpart"]),
+
+  // REPUTATION events — the third axis (portable, attestable standing). Each row
+  // is an OBSERVED, checkable fact about a counterpart's conduct (a continuity
+  // confirmation or a suspected takeover), NOT a claim or a vote — reputation
+  // must be built only on facts an agent can attest to, or it becomes the thing
+  // to game. Seed of a network-wide reputation signal; today it records the
+  // continuity outcomes the gate already computes.
+  reputationEvents: defineTable({
+    counterpart: v.string(), // the domain the event is about
+    kind: v.union(
+      v.literal("continuity_confirmed"),
+      v.literal("takeover_suspected"),
+    ),
+    userId: v.id("users"), // who observed it (provenance of the observation)
+    at: v.number(),
+  })
+    .index("by_counterpart", ["counterpart"]),
+
   // The user's POLICY: the structured ruleset their agent obeys before acting on
   // their behalf. Free-form to configure in the panel, structured to store and
   // enforce (Inbin schema pattern — no LLM in the enforcement path). One ordered

@@ -133,6 +133,11 @@ export interface DecideActionInput {
   // earn a grade the slow way. NEVER lifts payment / sensitive holds. Optional;
   // absent = treat as out-of-network (prior behavior preserved).
   tier?: "in_network" | "verified" | "unverified";
+  // CONTINUITY override (the impersonation axis). When a previously-seeded
+  // counterpart fails to prove continuity (a possible takeover), this forces a
+  // hold BEFORE any trust/tier/policy consideration — a taken-over member is
+  // worse than a stranger, so it overrides everything.
+  continuityHold?: boolean;
 }
 
 // Map an incoming email to the action the user's policy reasons about. Payment
@@ -154,6 +159,18 @@ export function classifyRequest(
 // default disclosure gate when no rule matches. `allow` → auto_answer;
 // `hold`/`deny` → hold_for_approval (deny never auto-acts).
 export function decideAction(input: DecideActionInput): GateDecision {
+  // CONTINUITY OVERRIDE (impersonation axis, highest priority): a previously-
+  // trusted counterpart that FAILS to prove continuity is a possible takeover.
+  // Hold everything — this beats trust, tier, and policy, because a taken-over
+  // identity is more dangerous than an unknown one.
+  if (input.continuityHold) {
+    return {
+      action: "hold_for_approval",
+      reason:
+        "This counterpart was trusted before, but failed the continuity check — the identity may have been taken over. Holding everything until you confirm.",
+    };
+  }
+
   // CONTAINMENT GUARANTEE: releasing sensitive PII (SSN, bank, DOB, …) can NEVER
   // be auto-approved — not by a policy rule, not by any level of trust. A human
   // always approves sensitive disclosure. This is what bounds a compromised

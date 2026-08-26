@@ -20,6 +20,7 @@ import type * as extract from "../extract.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
 import type * as lib_continuity from "../lib/continuity.js";
+import type * as lib_continuityState from "../lib/continuityState.js";
 import type * as lib_disclosureGate from "../lib/disclosureGate.js";
 import type * as lib_grade from "../lib/grade.js";
 import type * as lib_membership from "../lib/membership.js";
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inbound: typeof inbound;
   "lib/continuity": typeof lib_continuity;
+  "lib/continuityState": typeof lib_continuityState;
   "lib/disclosureGate": typeof lib_disclosureGate;
   "lib/grade": typeof lib_grade;
   "lib/membership": typeof lib_membership;

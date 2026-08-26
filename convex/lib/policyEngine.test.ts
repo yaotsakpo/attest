@@ -401,4 +401,19 @@ describe("decideAction — membership tier (the second axis)", () => {
     });
     expect(r.action).toBe("auto_answer");
   });
+
+  test("CONTINUITY takeover overrides EVERYTHING — in-network member with an allow rule still holds", () => {
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: false,
+      domain: "peer.agentmail.to",
+      text: "Are you free Tuesday?",
+      rules: [{ id: "r", action: "reply", appliesTo: "peer.agentmail.to", decision: "allow" }],
+      tier: "in_network",
+      continuityHold: true, // failed the continuity check → possible takeover
+    });
+    expect(r.action).toBe("hold_for_approval");
+    expect(r.reason).toMatch(/continuity|taken over/i);
+  });
 });

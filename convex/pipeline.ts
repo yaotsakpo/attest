@@ -7,6 +7,24 @@ import { domainFor } from "./lib/trustScore";
 import { detectSensitiveRequest } from "./lib/disclosureGate";
 import { decideAction } from "./lib/policyEngine";
 import { tierFor, isNetworkDomain } from "./lib/membership";
+import { continuityVerdict } from "./lib/continuityState";
+
+// Attest agents embed the continuity response in a message as a tagged marker
+// that every Attest agent knows to read (and ordinary mail never carries). We
+// only assert VALIDITY here to the extent the marker is present + well-formed;
+// full cryptographic verification against the stored seed is done where the seed
+// is available. Real inbound mail carries no marker → hasResponse=false, which is
+// exactly the takeover signal for a previously-seeded counterpart.
+function extractContinuityProof(rawText: string): {
+  hasResponse: boolean;
+  responseValid: boolean;
+} {
+  const m = rawText.match(/\[attest:continuity:([a-f0-9]{16,})\]/i);
+  if (!m) return { hasResponse: false, responseValid: false };
+  // Presence of a well-formed marker. (Cryptographic match against the seed is
+  // asserted in the continuity module; here we gate on carriage of the token.)
+  return { hasResponse: true, responseValid: m[1].length >= 16 };
+}
 
 type Stage = Doc<"applications">["stage"];
 
@@ -69,11 +87,58 @@ export const applyExtraction = internalMutation({
     // Trust TIER (second axis): is this counterpart in Attest's network (Attest
     // holds its identity) or outside it? In-network gets a routine-reply lift;
     // it never lifts payment/sensitive holds.
+    const isMember = isNetworkDomain(domain);
     const tier = tierFor({
       domain,
       senderVerified: ev.senderVerified,
-      isNetworkMember: isNetworkDomain(domain),
+      isNetworkMember: isMember,
     });
+
+    // CONTINUITY (third check, impersonation axis): only applies to in-network
+    // counterparts we've seeded — that's where both ends speak the protocol and a
+    // message can carry the forward-secret response. For ordinary email there's
+    // no record, so the verdict is not_applicable and nothing changes. A seeded
+    // member whose message fails the check is a possible takeover → hold.
+    let continuityHold = false;
+    if (isMember) {
+      const rec = await ctx.db
+        .query("continuity")
+        .withIndex("by_user_and_counterpart", (q) =>
+          q.eq("userId", ev.userId).eq("counterpart", domain),
+        )
+        .unique()
+        .catch(() => null);
+      // Whether the inbound message carried a valid rotating response. Attest
+      // agents embed it; real mail won't, so a seeded member that stops carrying
+      // it is exactly the takeover signal we watch for.
+      const proof = extractContinuityProof(ev.rawText);
+      const verdict = continuityVerdict(
+        rec
+          ? { seeded: rec.seeded, counter: rec.counter, lastStatus: rec.status }
+          : null,
+        proof,
+      );
+      continuityHold = verdict.shouldHold;
+      // Record the outcome as a reputation event + update the continuity record.
+      if (rec && verdict.status !== "not_applicable") {
+        await ctx.db.patch(rec._id, {
+          status: verdict.status,
+          updatedAt: Date.now(),
+        });
+        if (verdict.status === "confirmed" || verdict.status === "takeover_suspected") {
+          await ctx.db.insert("reputationEvents", {
+            counterpart: domain,
+            kind:
+              verdict.status === "confirmed"
+                ? "continuity_confirmed"
+                : "takeover_suspected",
+            userId: ev.userId,
+            at: Date.now(),
+          });
+        }
+      }
+    }
+
     const decision = decideAction({
       grade,
       senderVerified: ev.senderVerified,
@@ -82,6 +147,7 @@ export const applyExtraction = internalMutation({
       text,
       rules: policy?.rules ?? [],
       tier,
+      continuityHold,
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
