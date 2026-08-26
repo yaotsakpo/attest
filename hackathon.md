@@ -1,18 +1,18 @@
 # Hackathon log
 
-- **Project:** jobcopilot
+- **Project:** Warden
 - **Event:** Convex All Gas Hackathon
-- **What it does:** An AI job-search copilot: applications you make with an AgentMail inbox, where recruiter replies land and move a live Convex pipeline board, and every sender's email authentication is shown honestly (verified / couldn't verify).
+- **What it does:** A trust layer for your personal AI agent. Your agent talks to other agents and people over email (AgentMail), and Warden never lets it release sensitive info (SSN, bank details, address) to a counterpart it can't verify. It earns a live trust registry from observed DMARC-authenticated email, shows the agent's decisions honestly (auto-answered vs held-for-approval), and visualizes who it trusts as a force-directed graph where verified ATS-style hubs vouch for the companies that recruit through them.
 - **Live app:** not deployed
 - **Repo:** none
 - **Frontend:** Convex static hosting
 - **Convex deployment:** https://agreeable-dogfish-859.convex.cloud (dev)
 - **Components:** none
-- **Convex features:** none yet
-- **Auth:** none
-- **AI models:** none
+- **Convex features:** schema, indexes, queries, mutations, actions, HTTP actions (AgentMail webhook + agent-queryable /registry/domains endpoint), scheduled functions, reactive pagination (usePaginatedQuery), Convex Auth
+- **Auth:** Convex Auth (password)
+- **AI models:** OpenAI gpt-4o-mini (email extraction; falls back to a keyless rule-based extractor)
 - **Started:** 2026-08-26T01:32:33Z
-- **Last updated:** 2026-08-26T08:19:01Z
+- **Last updated:** 2026-08-26T16:20:00Z
 
 ## Log
 
@@ -30,3 +30,6 @@ Reconciled the plan with the hackathon page: flagged that Convex Auth is the v2 
 
 ### 2026-08-26 - working tree
 Scaffolded the app and provisioned Convex. Vite + React 19 + TypeScript frontend, installed the `convex` client, and ran `npx convex dev` to create the dev deployment `agreeable-dogfish-859`. Convex wrote its AI guidelines, `AGENTS.md`, and `CLAUDE.md` into the repo. No product code or schema yet; the frontend host is Convex static hosting. (`package.json`, `convex/`, `.env.local`)
+
+### 2026-08-26 - 9dadc16
+Built the full product and reframed it. Backend (Convex): schema (domains, domainEdges, events, vault, applications, drafts, profiles + authTables); the honest sender-auth evaluator (verified vs couldn't-verify, never "fake"); AgentMail inbound webhook (httpAction, dedup, fast-ack); OpenAI extraction with a keyless rule-based fallback; a forward-only pipeline; the earned trust registry with an agent-queryable HTTP endpoint (`/registry/domains`); the disclosure gate (releases sensitive info only to verified counterparts, else holds for approval); a per-user vault; and trust-transfer (ATS hubs vouch for the companies that recruit through them). Frontend: terminal-native UI (Terminal.css shape + the founder's brand palette, Inter + JetBrains Mono), a stable react-force-graph trust map, pagination + search + skeleton/empty states across every list. Reframed from a job copilot to **Warden**, a general trust layer for a personal agent that talks to other agents/people over email about anything. 28/28 unit tests green. (`convex/`, `src/`)
