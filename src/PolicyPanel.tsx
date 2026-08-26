@@ -317,7 +317,6 @@ export function PolicyPanel({
 function AgentConnection() {
   const inbox = useQuery(api.profiles.myInbox);
   const provision = useAction(api.agentmail.provisionInbox);
-  const relinkAction = useAction(api.agentmail.relinkWebhook);
   const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
@@ -328,17 +327,6 @@ function AgentConnection() {
     try {
       const res = await provision();
       if (!res) setNote("Couldn’t connect — is AgentMail configured?");
-    } finally {
-      setBusy(false);
-    }
-  }
-  async function relink() {
-    setBusy(true);
-    setNote(null);
-    try {
-      const res = await relinkAction();
-      setNote(res?.ok ? "Re-linked. Inbound mail flows to your dashboard." : "Re-link failed.");
-      setTimeout(() => setNote(null), 2600);
     } finally {
       setBusy(false);
     }
@@ -368,27 +356,29 @@ function AgentConnection() {
           <div className="agent-conn-addr">
             <span className="inbox-dot" />
             <span className="mono">{inbox.email}</span>
-            <button className="mini-btn" onClick={copy} disabled={busy}>
+            <button className="mini-btn" onClick={copy}>
               {copied ? "copied" : "copy"}
-            </button>
-            <button className="mini-btn" onClick={() => void relink()} disabled={busy}>
-              {busy ? "…" : "re-link"}
             </button>
           </div>
           <p className="agent-conn-hint">
-            Send email here and it appears in your dashboard in seconds. Re-link
-            only if inbound ever stops — it repairs the webhook without changing
-            your address.
+            This is your agent’s address. Send email here — or forward your real
+            mail to it — and it appears in your dashboard in seconds.
           </p>
         </>
       ) : (
-        <button
-          className="btn btn-primary"
-          onClick={() => void connect()}
-          disabled={busy}
-        >
-          {busy ? "Connecting…" : "Connect inbox"}
-        </button>
+        <>
+          <button
+            className="btn btn-primary"
+            onClick={() => void connect()}
+            disabled={busy}
+          >
+            {busy ? "Connecting…" : "Connect inbox"}
+          </button>
+          <p className="agent-conn-hint">
+            Warden gives your agent its own email address — no setup, nothing to
+            paste. Click to create it.
+          </p>
+        </>
       )}
 
       {note && <div className="agent-conn-note">{note}</div>}
