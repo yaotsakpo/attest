@@ -920,6 +920,17 @@ table.data.registry-cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
+  /* the whole board scrolls as ONE unit inside its panel; columns size to
+     content (no per-column fixed height fighting the cell height) */
+  overflow-y: auto;
+  align-content: start;
+}
+.board::-webkit-scrollbar {
+  width: 6px;
+}
+.board::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+  border-radius: 3px;
 }
 @media (max-width: 560px) {
   .board {
@@ -932,11 +943,10 @@ table.data.registry-cols {
   border: 1px solid var(--term-border);
   border-radius: var(--radius-sm);
   background: var(--term-bg);
-  height: 360px; /* fixed → uniform columns */
-  min-height: 200px;
+  min-height: 140px; /* uniform floor; grows with content, board scrolls */
+  align-self: start;
   display: flex;
   flex-direction: column;
-  overflow: hidden;
 }
 .column-title {
   flex-shrink: 0;
@@ -952,25 +962,21 @@ table.data.registry-cols {
   border-bottom: 1px solid var(--term-border);
   background: var(--term-bar);
 }
-/* the scrollable card area */
+/* cards flow naturally; the whole board scrolls, not each column */
 .column-cards {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
   padding: var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
-/* slim scrollbar to match the terminal aesthetic */
-.column-cards::-webkit-scrollbar {
+.column-cards-unused::-webkit-scrollbar {
   width: 6px;
 }
-.column-cards::-webkit-scrollbar-thumb {
+.column-cards-unused::-webkit-scrollbar-thumb {
   background: var(--line-strong);
   border-radius: 3px;
 }
-.column-cards::-webkit-scrollbar-track {
+.column-cards-unused::-webkit-scrollbar-track {
   background: transparent;
 }
 .card {
