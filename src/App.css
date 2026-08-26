@@ -337,6 +337,20 @@ button {
 }
 .graph-webgl canvas {
   display: block;
+  cursor: grab;
+}
+.graph-webgl canvas:active {
+  cursor: grabbing;
+}
+.graph-hint-inline {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--ink-3);
+  pointer-events: none;
+  opacity: 0.7;
 }
 .graph-empty {
   position: absolute;

@@ -138,9 +138,9 @@ export function TrustGraph() {
       linkDirectionalParticleWidth={2}
       linkDirectionalParticleSpeed={0.006}
       linkDirectionalParticleColor={() => `rgba(${EMERALD}, 0.9)`}
-      enableNodeDrag={expanded}
-      enableZoomInteraction={expanded}
-      enablePanInteraction={expanded}
+      enableNodeDrag={true}
+      enableZoomInteraction={true}
+      enablePanInteraction={true}
       nodeCanvasObject={draw}
     />
   );
@@ -173,7 +173,10 @@ export function TrustGraph() {
               The map fills as your agent observes authenticated email.
             </p>
           ) : (
-            <Graph w={size.w} h={size.h} />
+            <>
+              <Graph w={size.w} h={size.h} />
+              <span className="graph-hint-inline">drag · scroll to zoom</span>
+            </>
           )}
         </div>
       </div>
