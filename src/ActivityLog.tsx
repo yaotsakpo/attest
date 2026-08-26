@@ -45,7 +45,7 @@ export function ActivityLog() {
       </div>
 
       <ExpandablePanel
-        path="agent@jobcopilot ~ activity-log"
+        path="agent@warden ~ activity-log"
         expanded={expanded}
         onToggle={setExpanded}
         tag={

@@ -1,0 +1,37 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#0b0d12"/>
+  <!-- subtle emerald glow -->
+  <defs>
+    <radialGradient id="glow" cx="18%" cy="30%" r="60%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.14"/>
+      <stop offset="100%" stop-color="#0b0d12" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#glow)"/>
+
+  <!-- shield mark -->
+  <g transform="translate(96,150)">
+    <path d="M60 12 L112 32 V78 C112 116 88 138 60 150 C32 138 8 116 8 78 V32 Z"
+          fill="none" stroke="#34d399" stroke-width="7" stroke-linejoin="round"/>
+    <path d="M36 78 L54 96 L88 58"
+          fill="none" stroke="#34d399" stroke-width="8" stroke-linecap="round" stroke-linejoin="round"/>
+  </g>
+
+  <!-- wordmark -->
+  <text x="260" y="205" font-family="'JetBrains Mono', ui-monospace, monospace"
+        font-size="72" font-weight="700" fill="#f3f4f6">Warden</text>
+  <text x="262" y="250" font-family="'JetBrains Mono', ui-monospace, monospace"
+        font-size="26" fill="#34d399">the trust layer for your AI agent</text>
+
+  <!-- headline -->
+  <text x="96" y="380" font-family="Inter, system-ui, sans-serif"
+        font-size="52" font-weight="700" fill="#f3f4f6">A stranger emailed your agent</text>
+  <text x="96" y="446" font-family="Inter, system-ui, sans-serif"
+        font-size="52" font-weight="700" fill="#f3f4f6">asking for your SSN.</text>
+  <text x="96" y="524" font-family="Inter, system-ui, sans-serif"
+        font-size="40" font-weight="600" fill="#34d399">It said no.</text>
+
+  <!-- three beats -->
+  <text x="96" y="588" font-family="'JetBrains Mono', ui-monospace, monospace"
+        font-size="24" fill="#6b7280">earn · hold · learn</text>
+</svg>

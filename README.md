@@ -1,28 +1,33 @@
 # Warden
 
-**A trust layer for your personal AI agent.**
+**A stranger just emailed your AI agent asking for your SSN. Warden is the reason it said no.**
 
 Your agent is starting to act for you — reading email, replying, soon paying invoices and sharing your details. The moment it talks to *other* agents and people, one question decides everything: **who is it allowed to trust, and what is it allowed to do on your behalf?**
 
-Warden is that layer. It gives your agent an email inbox, earns a live trust registry from the mail it actually receives, and refuses to act on anything it can't stand behind — an unverified sender, a request for sensitive info, a payment over a limit you set. You define the rules; it enforces them.
+Warden is the trust layer that answers it. Give your agent an email inbox and Warden does three things:
+
+- **Earn** — it builds a live trust score for every counterpart from the mail it actually receives (authenticated, not SEO).
+- **Hold** — it refuses to act on anything it can't stand behind: an unverified sender, a request for your SSN, a payment over your limit. That waits for you.
+- **Learn** — approve something once and it becomes a standing rule, so your agent handles it itself next time.
+
+You set the policy in plain, structured rules. It enforces them — deterministically, with no LLM in the decision path.
 
 Built for the **Convex All Gas Hackathon** on Convex + AgentMail + Firecrawl + OpenAI.
 
 ---
 
-## What it does
+## Earn · Hold · Learn
 
-- **Earns trust, doesn't assume it.** Every inbound email is checked for DMARC authentication. A domain's grade (A–F) is *earned* from observed authenticated mail — not SEO, not a hardcoded allowlist. The registry is the app's spine, exposed to agents at `GET /registry/domains`.
+**Earn.** Every inbound email is checked for DMARC authentication. A domain's grade (A–F) is *earned* from observed authenticated mail — not SEO, not a hardcoded allowlist. The registry is the app's spine, exposed to agents at `GET /registry/domains`. It never says "fake" — only "verified" or "couldn't verify", because legitimate mail routed through tools routinely fails DMARC alignment.
 
-- **Holds what it can't stand behind.** A disclosure gate holds any email that asks for sensitive info (SSN, bank, address) or comes from a sender it couldn't verify. Held items wait for your one-click approve/dismiss. It never says "fake" — only "verified" or "couldn't verify", because legitimate ATS mail routinely fails DMARC alignment.
+**Hold.** A user-owned **policy engine** (structured rules, no LLM in the enforcement path) governs what the agent may do on its own: *reply / payment / share info / custom*, each with conditions (amount threshold, require-verified, min-grade, per-domain scope) and an allow / hold / deny decision. First match wins; anything unmatched holds. An unauthorized payment **always** holds, and a remembered payment is capped at the amount you approved.
 
-- **Enforces your policy.** A user-owned **policy engine** (structured rules, no LLM in the enforcement path) governs what the agent may do on its own: *reply / payment / share info / schedule / custom*, each with conditions (amount threshold, require-verified, min-grade, per-domain scope) and an allow / hold / deny decision. First match wins; anything unmatched holds. An unauthorized payment **always** holds.
+**Learn.** Approve a held item and Warden offers to *remember the decision* — one click writes a standing rule so the agent handles that counterpart itself next time.
 
-- **Learns from your approvals.** Approve a held item and Warden offers to *remember the decision* — one click writes a standing rule so the agent handles that counterpart itself next time.
+### Under the hood
 
-- **Shows who vouches for whom.** A force-directed trust graph renders the registry: verified ATS hubs (greenhouse.io, lever.co…) vouch for the companies that reach through them, so a company inherits trust the first time it appears.
-
-- **Multi-tenant by construction.** Each user gets their own AgentMail inbox. The registry is global under the hood (collective reputation — everyone's observations sharpen the scores) but each user only sees the domains their own agent corresponded with.
+- **A trust graph** renders the registry: verified hubs (greenhouse.io, lever.co…) vouch for the companies that reach through them, so a company inherits trust the first time it appears.
+- **Multi-tenant by construction.** Each user gets their own AgentMail inbox. The registry is global (collective reputation — everyone's observations sharpen the scores) but each user only sees the domains their own agent corresponded with.
 
 ## The four sponsors, each doing real work
 
@@ -57,7 +62,7 @@ inbound email ─▶ AgentMail webhook ─▶ httpAction (resolve inbox owner)
 
 ## Tests
 
-77 unit + integration tests (`npx vitest run`), including ground-truth gates: a verified $200 invoice auto-answers, a $5,000 wire holds, and cross-tenant isolation (user B never sees user A's data).
+78 unit + integration tests (`npx vitest run`), including ground-truth gates: a verified $200 invoice auto-answers, a $5,000 wire holds, a remembered payment stays capped at the approved amount, and cross-tenant isolation (user B never sees user A's data).
 
 ## Run locally
 
@@ -71,6 +76,6 @@ npm run dev           # Vite frontend
 #   each integration no-ops safely without its key)
 ```
 
-## Not job search
+## Any counterpart
 
-Warden began as a job-application copilot and grew into the general case: a trust layer for any personal agent that corresponds over email — vendors, clients, services, anyone. The job-pipeline board is one view of the same conversation engine.
+Warden works for anyone your agent corresponds with over email — vendors, clients, recruiters, services. The conversations board is one view of the same trust engine that powers the registry, the gate, and the graph.

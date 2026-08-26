@@ -61,7 +61,7 @@ export function NeedsYou() {
       </div>
 
       <ExpandablePanel
-        path="agent@jobcopilot ~ needs-you"
+        path="agent@warden ~ needs-you"
         expanded={expanded}
         onToggle={setExpanded}
         tag={
