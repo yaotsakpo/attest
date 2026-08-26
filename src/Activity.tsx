@@ -138,20 +138,35 @@ export function Activity() {
               ) : (
                 filtered.map((e) => {
                   const auto = e.gateAction === "auto_answer";
+                  // The DECISION reflects the CURRENT state, not the frozen
+                  // original action. A held item you've since approved reads
+                  // "released"; dismissed reads "dismissed"; only an unresolved
+                  // hold still reads "held". This keeps the table consistent
+                  // with the graph (which shows live unresolved state).
+                  const decision = auto
+                    ? { label: "auto-answered", cls: "gate-auto" }
+                    : e.gateResolved === "approved"
+                      ? { label: "released", cls: "gate-auto" }
+                      : e.gateResolved === "dismissed"
+                        ? { label: "dismissed", cls: "gate-dismissed" }
+                        : { label: "held", cls: "gate-hold" };
+                  const status = auto
+                    ? "sent"
+                    : e.gateResolved === "approved"
+                      ? "you approved"
+                      : e.gateResolved === "dismissed"
+                        ? "you dismissed"
+                        : "awaiting you";
                   return (
                     <tr key={e._id}>
                       <td>
-                        <span
-                          className={`gate ${auto ? "gate-auto" : "gate-hold"}`}
-                        >
-                          {auto ? "auto-answered" : "held"}
+                        <span className={`gate ${decision.cls}`}>
+                          {decision.label}
                         </span>
                       </td>
                       <td className="m">{domainOf(e.fromAddress)}</td>
                       <td>{e.subject || "(no subject)"}</td>
-                      <td className="num dim">
-                        {e.gateResolved ?? (auto ? "sent" : "—")}
-                      </td>
+                      <td className="num dim">{status}</td>
                     </tr>
                   );
                 })

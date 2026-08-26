@@ -1329,6 +1329,11 @@ table.data.registry-cols {
   color: var(--warn);
   background: var(--warn-bg);
 }
+/* a resolved-dismissed item: muted, past-tense, no longer demanding attention */
+.gate-dismissed {
+  color: var(--ink-3);
+  background: transparent;
+}
 
 /* ── Policy drawer (right-side) ─────────────────────────────────────────── */
 .drawer-scrim {
