@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { gradeFor } from "./grade";
-import { SkeletonRows } from "./Activity";
+import { SkeletonRows } from "./SkeletonRows";
 import { ExpandablePanel } from "./ExpandablePanel";
 
 const PAGE = 50;

@@ -5,7 +5,8 @@ import { Registry } from "./Registry";
 import { Board } from "./Board";
 import { Vault } from "./Vault";
 import { TrustGraph } from "./TrustGraph";
-import { Activity } from "./Activity";
+import { NeedsYou } from "./NeedsYou";
+import { ActivityLog } from "./ActivityLog";
 import { InboxBadge } from "./InboxBadge";
 import { PolicyPanel } from "./PolicyPanel";
 import "./App.css";
@@ -117,11 +118,15 @@ function Dashboard() {
       <main>
         {view === "home" ? (
           <div className="grid2">
-            {/* Row 1: registry ‖ agent activity — headers + panels aligned */}
+            {/* Row 1: conversations — FULL WIDTH across both columns */}
+            <div className="span-2">
+              <Board />
+            </div>
+            {/* Row 2: registry ‖ needs-you (held + remember) */}
             <Registry />
-            <Activity />
-            {/* Row 2: conversations ‖ trust map — headers + panels aligned */}
-            <Board />
+            <NeedsYou />
+            {/* Row 3: activity log (history) ‖ trust map */}
+            <ActivityLog />
             <TrustGraph />
           </div>
         ) : (
