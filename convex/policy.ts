@@ -96,7 +96,7 @@ export const rememberDecision = mutation({
 
     const domain = ev.registryDomain ?? fromDomainOf(ev.fromAddress);
     if (!domain) return null;
-    const { action } = classifyRequest(
+    const { action, amount } = classifyRequest(
       `${ev.subject}\n${ev.rawText}`,
       ev.sensitiveRequest ?? false,
     );
@@ -124,6 +124,20 @@ export const rememberDecision = mutation({
       appliesTo: domain,
       decision: "allow",
     };
+    // SAFETY: a remembered PAYMENT must be BOUNDED. Approving one $250 invoice
+    // must not auto-approve a future $10,000 one. Cap the rule at the amount the
+    // user actually approved (require the sender to be verified too — the user
+    // approved a specific verified counterpart, not a class of them).
+    if (action === "payment") {
+      rule.requireVerified = true;
+      if (amount !== undefined) {
+        rule.maxAmount = amount;
+      } else {
+        // A payment with no parseable amount can't be safely bounded, so we
+        // refuse to remember it — it stays a per-message approval.
+        return null;
+      }
+    }
     // A remembered decision is specific — put it at the TOP so it takes
     // precedence over broader global rules (first match wins).
     const next = [rule, ...rules];

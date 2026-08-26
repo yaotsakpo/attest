@@ -1,4 +1,9 @@
-import { internalMutation, internalQuery, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  query,
+  type QueryCtx,
+} from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -126,13 +131,13 @@ export const observeEdge = internalMutation({
 // SEES the domains their own inbox received mail from. No cross-tenant peeking:
 // you can't see a domain you never emailed, even though its score is global.
 async function visibleDomainsForUser(
-  ctx: { db: any; auth: any },
+  ctx: QueryCtx,
 ): Promise<Set<string> | null> {
-  const userId = await getAuthUserId(ctx as any);
+  const userId = await getAuthUserId(ctx);
   if (!userId) return new Set(); // signed-out: see nothing
   const events = await ctx.db
     .query("events")
-    .withIndex("by_user", (q: any) => q.eq("userId", userId))
+    .withIndex("by_user", (q) => q.eq("userId", userId))
     .take(1000);
   const set = new Set<string>();
   for (const e of events) {

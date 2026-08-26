@@ -108,6 +108,55 @@ test("rememberDecision appends a domain-scoped allow rule matching the held item
   expect(rules[0].action).toBe("payment");
   expect(rules[0].appliesTo).toBe("acme.com");
   expect(rules[0].decision).toBe("allow");
+  // SAFETY: remembering a payment must NOT create an unbounded auto-pay rule.
+  // The remembered rule caps at the amount actually approved ($250 here), so a
+  // future $10,000 invoice from the same domain still holds.
+  expect(rules[0].maxAmount).toBe(250);
+});
+
+test("remembered payment is BOUNDED: a later over-cap payment from the same domain still holds", async () => {
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+
+  // Approve a $250 payment and remember it.
+  const firstId = await t.run(async (ctx) =>
+    ctx.db.insert("events", {
+      userId,
+      agentmailMsgId: "pay_first",
+      fromAddress: "billing@acme.com",
+      subject: "Invoice #9",
+      rawText: "Please remit $250 for invoice #9.",
+      senderVerified: true,
+      registryDomain: "acme.com",
+      sensitiveRequest: false,
+      gateAction: "hold_for_approval",
+      gateResolved: "approved",
+    }),
+  );
+  await asUser(t, userId).mutation(api.policy.rememberDecision, {
+    eventId: firstId,
+  });
+
+  const rules = await asUser(t, userId).query(api.policy.get, {});
+  // The remembered rule allows payments up to $250 from acme.com…
+  const { evaluatePolicy } = await import("./lib/policyEngine");
+  const underCap = evaluatePolicy(rules as never, {
+    action: "payment",
+    amount: 200,
+    senderVerified: true,
+    grade: "A",
+    domain: "acme.com",
+  });
+  expect(underCap?.decision).toBe("allow");
+  // …but a $10,000 invoice from the SAME domain is NOT auto-allowed.
+  const overCap = evaluatePolicy(rules as never, {
+    action: "payment",
+    amount: 10000,
+    senderVerified: true,
+    grade: "A",
+    domain: "acme.com",
+  });
+  expect(overCap).toBeNull();
 });
 
 test("rememberDecision is idempotent-ish: no duplicate rule for the same action+domain", async () => {

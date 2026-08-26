@@ -72,10 +72,10 @@ export const provisionInbox = action({
           client_id: `warden-hook-${userId}`,
         }),
       });
-      // Note: the response includes a `secret` (whsec_...) for Svix
-      // verification. For the hackathon we accept unsigned inbound (the endpoint
-      // still resolves the inbox owner and only ingests known inboxes); wiring
-      // Svix verification is a follow-up hardening step.
+      // The inbound endpoint verifies the Svix signature when
+      // AGENTMAIL_WEBHOOK_SECRET is set (see convex/http.ts verifySvix). If it's
+      // unset, inbound is accepted unsigned (demo path) but still only ingests
+      // known inboxes.
     } catch {
       // webhook registration failure shouldn't block inbox provisioning
     }
