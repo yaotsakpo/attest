@@ -819,6 +819,22 @@ table.data.registry-cols {
   font-size: var(--t-sm);
   text-align: center;
 }
+.column-more {
+  width: 100%;
+  background: transparent;
+  border: 1px solid var(--term-border);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  padding: 6px;
+  transition:
+    color 120ms ease,
+    border-color 120ms ease;
+}
+.column-more:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
 
 /* --- Pipeline board --- */
 /* board lives in a ~half-width column now → 3×2 grid of stages */

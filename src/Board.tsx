@@ -1,5 +1,9 @@
+import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Doc } from "../convex/_generated/dataModel";
+
+const PER_COLUMN = 5;
 
 const STAGES = [
   { key: "applied", label: "Applied" },
@@ -66,27 +70,53 @@ export function Board() {
         </div>
       ) : (
         <div className="board">
-          {STAGES.map((stage) => {
-            const cards = apps.filter((a) => a.stage === stage.key);
-            return (
-              <div key={stage.key} className="column">
-                <div className="column-title">
-                  <span>{stage.label}</span>
-                  <span>{cards.length || ""}</span>
-                </div>
-                {cards.map((a) => (
-                  <div key={a._id} className="card">
-                    <div className="card-company">{a.company}</div>
-                    <div className="card-meta">
-                      <Status state={a.trustState} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-            );
-          })}
+          {STAGES.map((stage) => (
+            <Column
+              key={stage.key}
+              label={stage.label}
+              cards={apps.filter((a) => a.stage === stage.key)}
+            />
+          ))}
         </div>
       )}
     </section>
+  );
+}
+
+// One pipeline column — paginated: shows PER_COLUMN cards, "+N more" reveals the
+// rest in batches, so a stage with 200 applications doesn't blow out the board.
+function Column({
+  label,
+  cards,
+}: {
+  label: string;
+  cards: Doc<"applications">[];
+}) {
+  const [shown, setShown] = useState(PER_COLUMN);
+  const visible = cards.slice(0, shown);
+  const remaining = cards.length - shown;
+  return (
+    <div className="column">
+      <div className="column-title">
+        <span>{label}</span>
+        <span>{cards.length || ""}</span>
+      </div>
+      {visible.map((a) => (
+        <div key={a._id} className="card">
+          <div className="card-company">{a.company}</div>
+          <div className="card-meta">
+            <Status state={a.trustState} />
+          </div>
+        </div>
+      ))}
+      {remaining > 0 && (
+        <button
+          className="column-more"
+          onClick={() => setShown(shown + PER_COLUMN)}
+        >
+          +{remaining} more
+        </button>
+      )}
+    </div>
   );
 }
