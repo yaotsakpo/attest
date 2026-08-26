@@ -118,15 +118,18 @@ export function TrustGraph() {
       }
       ctx!.globalAlpha = 1;
 
-      // hub
-      ctx!.fillStyle = "#fafafa";
-      ctx!.beginPath();
-      ctx!.arc(c.x, c.y, 6, 0, Math.PI * 2);
-      ctx!.fill();
-      ctx!.fillStyle = "#9a9aa4";
-      ctx!.font = "11px 'Spline Sans Mono', monospace";
-      ctx!.textAlign = "center";
-      ctx!.fillText("your agent", c.x, c.y + 22);
+      // hub — only drawn once the agent has observed something, so the empty
+      // state's centered message doesn't collide with the hub label.
+      if (nodes.length > 0) {
+        ctx!.fillStyle = "#cdd6f4";
+        ctx!.beginPath();
+        ctx!.arc(c.x, c.y, 6, 0, Math.PI * 2);
+        ctx!.fill();
+        ctx!.fillStyle = "#7f849c";
+        ctx!.font = "11px 'Spline Sans Mono', monospace";
+        ctx!.textAlign = "center";
+        ctx!.fillText("your agent", c.x, c.y + 22);
+      }
 
       // nodes
       for (const n of nodes) {

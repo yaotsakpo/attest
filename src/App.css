@@ -258,20 +258,21 @@ button {
 .section {
   margin-bottom: var(--space-3xl);
 }
-/* Section head: accent [ label ] eyebrow, title, then a muted note */
+/* Section head: [ label ] then title, left-aligned on one row; note below.
+   Grid col 1 = label (its width), col 2 = content, both hug the left. */
 .section-head {
-  display: flex;
+  display: grid;
+  grid-template-columns: max-content 1fr;
   align-items: baseline;
-  gap: var(--space-md);
+  column-gap: var(--space-md);
+  row-gap: 6px;
   margin-bottom: var(--space-lg);
-  flex-wrap: wrap;
 }
 .section-label {
   font-family: var(--mono);
   color: var(--accent);
   font-size: var(--t-xs);
   letter-spacing: 0.04em;
-  flex-shrink: 0;
 }
 .section-title {
   margin: 0;
@@ -280,11 +281,15 @@ button {
   font-weight: 600;
   letter-spacing: -0.01em;
   color: var(--ink);
+  text-align: left;
 }
-
+/* note on its own line, aligned under the title (col 2) */
 .section-note {
-  color: var(--ink-2);
+  grid-column: 2;
+  text-align: left;
+  color: var(--ink-3);
   font-size: var(--t-sm);
+  line-height: 1.5;
 }
 .section-note code {
   font-family: var(--mono);
@@ -427,12 +432,17 @@ table.data.registry-cols {
   font-weight: 500;
   font-size: var(--t-xs);
   letter-spacing: 0.03em;
+  text-transform: uppercase;
   color: var(--ink-3);
   font-family: var(--mono);
   padding: var(--space-md) var(--space-xl);
-  border-bottom: 1px dashed var(--dash);
+  border-bottom: 1px solid var(--term-border);
   background: transparent;
   white-space: nowrap;
+}
+/* numeric headers right-align to sit directly above their right-aligned data */
+.data thead th.num {
+  text-align: right;
 }
 .data thead th.sortable {
   cursor: pointer;
@@ -493,6 +503,7 @@ table.data.registry-cols {
   font-family: var(--mono);
   font-size: var(--t-xs);
   white-space: nowrap;
+  text-align: right;
 }
 
 /* Grade box — flat fill, semantic, the SSL-Labs hero move miniaturized */

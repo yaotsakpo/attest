@@ -122,6 +122,12 @@ function Dashboard() {
 }
 
 export default function App() {
+  // DEV-ONLY preview: `?preview` renders the dashboard shell without auth so the
+  // layout can be screenshotted during development. Never reachable in prod
+  // (import.meta.env.DEV is false in the build) and gated on the query param.
+  if (import.meta.env.DEV && new URLSearchParams(location.search).has("preview")) {
+    return <Dashboard />;
+  }
   return (
     <>
       <AuthLoading>
