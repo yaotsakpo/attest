@@ -9,6 +9,7 @@ import { ActivityLog } from "./ActivityLog";
 import { InboxBadge } from "./InboxBadge";
 import { PolicyPanel } from "./PolicyPanel";
 import { VaultDrawer } from "./VaultDrawer";
+import { ContinuityDrawer } from "./ContinuityDrawer";
 import "./App.css";
 
 const MIN_PASSWORD = 8;
@@ -82,7 +83,9 @@ function Dashboard() {
   const { signOut } = useAuthActions();
   // Two right-side drawers (Agent + Vault), one open at a time. The dashboard
   // grid is always the page behind them.
-  const [drawer, setDrawer] = useState<"none" | "agent" | "vault">("none");
+  const [drawer, setDrawer] = useState<
+    "none" | "agent" | "vault" | "continuity"
+  >("none");
 
   return (
     <div className="app">
@@ -105,6 +108,14 @@ function Dashboard() {
           >
             Agent
           </button>
+          <button
+            className={`btn ${drawer === "continuity" ? "btn-primary" : "btn-ghost"}`}
+            onClick={() =>
+              setDrawer(drawer === "continuity" ? "none" : "continuity")
+            }
+          >
+            Continuity
+          </button>
           <button className="btn btn-ghost" onClick={() => void signOut()}>
             Sign out
           </button>
@@ -117,6 +128,10 @@ function Dashboard() {
       />
       <VaultDrawer
         open={drawer === "vault"}
+        onClose={() => setDrawer("none")}
+      />
+      <ContinuityDrawer
+        open={drawer === "continuity"}
         onClose={() => setDrawer("none")}
       />
 

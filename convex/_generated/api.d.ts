@@ -12,6 +12,7 @@ import type * as activity from "../activity.js";
 import type * as agentmail from "../agentmail.js";
 import type * as auth from "../auth.js";
 import type * as board from "../board.js";
+import type * as continuity from "../continuity.js";
 import type * as dev from "../dev.js";
 import type * as enrich from "../enrich.js";
 import type * as events from "../events.js";
@@ -42,6 +43,7 @@ declare const fullApi: ApiFromModules<{
   agentmail: typeof agentmail;
   auth: typeof auth;
   board: typeof board;
+  continuity: typeof continuity;
   dev: typeof dev;
   enrich: typeof enrich;
   events: typeof events;
