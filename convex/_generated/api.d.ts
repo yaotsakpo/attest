@@ -18,6 +18,7 @@ import type * as events from "../events.js";
 import type * as extract from "../extract.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
+import type * as lib_continuity from "../lib/continuity.js";
 import type * as lib_disclosureGate from "../lib/disclosureGate.js";
 import type * as lib_grade from "../lib/grade.js";
 import type * as lib_policyEngine from "../lib/policyEngine.js";
@@ -47,6 +48,7 @@ declare const fullApi: ApiFromModules<{
   extract: typeof extract;
   http: typeof http;
   inbound: typeof inbound;
+  "lib/continuity": typeof lib_continuity;
   "lib/disclosureGate": typeof lib_disclosureGate;
   "lib/grade": typeof lib_grade;
   "lib/policyEngine": typeof lib_policyEngine;
