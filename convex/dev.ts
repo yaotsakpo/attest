@@ -1,42 +1,34 @@
 import { internalMutation, internalQuery } from "./_generated/server";
 import { v } from "convex/values";
 
-// Dev/demo helpers. Internal only — never exposed to clients. Used from the CLI
-// (`npx convex run dev:linkDemoInbox '{"inbox":"..."}'`) to wire the most-recent
-// signed-up user to a demo AgentMail inbox so the inbound webhook has a target
-// before auto-provisioning (Task 7) exists.
-export const linkDemoInbox = internalMutation({
-  args: { inbox: v.string(), inboxId: v.optional(v.string()) },
-  handler: async (ctx, args): Promise<string> => {
-    // Most-recently-created user (the account you just made).
-    const users = await ctx.db.query("users").order("desc").take(1);
-    const user = users[0];
-    if (!user) return "no users yet — sign up first";
-
-    const existing = await ctx.db
-      .query("profiles")
-      .withIndex("by_user", (q) => q.eq("userId", user._id))
-      .first();
-    if (existing) {
-      await ctx.db.patch("profiles", existing._id, {
-        agentmailInbox: args.inbox,
-        agentmailInboxId: args.inboxId ?? existing.agentmailInboxId,
-      });
-      return `updated profile for ${user._id}: ${args.inbox}`;
-    }
-    await ctx.db.insert("profiles", {
-      userId: user._id,
-      agentmailInbox: args.inbox,
-      agentmailInboxId: args.inboxId ?? "demo_inbox",
-    });
-    return `linked ${user._id} -> ${args.inbox}`;
-  },
-});
+// Demo/CLI utilities. Internal only — never exposed to clients. Used to inspect
+// and reset demo data from the terminal during a live demo. Not part of the app
+// runtime; no client or server code imports these.
 
 // Read the live board/registry state from the CLI (no UI needed) to verify the
-// pipeline during the build/demo.
+// pipeline during a demo: `npx convex run dev:peek`.
 export const peek = internalQuery({
   args: {},
+  returns: v.object({
+    applications: v.array(
+      v.object({
+        company: v.string(),
+        role: v.string(),
+        stage: v.string(),
+        trust: v.string(),
+      }),
+    ),
+    eventCount: v.number(),
+    domains: v.array(v.object({ domain: v.string(), score: v.number() })),
+    decisions: v.array(
+      v.object({
+        from: v.string(),
+        verified: v.boolean(),
+        sensitive: v.boolean(),
+        gate: v.union(v.string(), v.null()),
+      }),
+    ),
+  }),
   handler: async (ctx) => {
     const apps = await ctx.db.query("applications").take(100);
     const events = await ctx.db.query("events").take(100);
@@ -60,13 +52,21 @@ export const peek = internalQuery({
   },
 });
 
-// Wipe demo data (applications, events, drafts, domains) for a clean re-run.
-// Leaves users/profiles intact so you stay signed in.
+// Wipe demo data (applications, events, drafts, domains, domainEdges) for a
+// clean re-run: `npx convex run dev:resetDemo`. Leaves users/profiles/policies
+// intact so you stay signed in with your settings.
 export const resetDemo = internalMutation({
   args: {},
+  returns: v.string(),
   handler: async (ctx): Promise<string> => {
-    for (const table of ["applications", "events", "drafts", "domains"] as const) {
-      const rows = await ctx.db.query(table).take(1000);
+    for (const table of [
+      "applications",
+      "events",
+      "drafts",
+      "domains",
+      "domainEdges",
+    ] as const) {
+      const rows = await ctx.db.query(table).take(2000);
       for (const r of rows) await ctx.db.delete(table, r._id);
     }
     return "demo data cleared";
