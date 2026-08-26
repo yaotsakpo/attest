@@ -29,6 +29,12 @@ Built for the **Convex All Gas Hackathon** on Convex + AgentMail + Firecrawl + O
 - **A trust graph** renders the registry: verified hubs (greenhouse.io, lever.co…) vouch for the companies that reach through them, so a company inherits trust the first time it appears.
 - **Multi-tenant by construction.** Each user gets their own AgentMail inbox. The registry is global (collective reputation — everyone's observations sharpen the scores) but each user only sees the domains their own agent corresponded with.
 
+## The principle
+
+Warden applies a single idea: **derive trust from the authenticated channel, not from message content.** A message that *claims* to be from a company means nothing; a message that *authenticated* as that domain is evidence. The agent never trusts what a message says about itself.
+
+This is the same principle behind my published research, [*Context References Over Payloads: Authority Scoped to the Predicate, Not the Principal*](https://doi.org/10.5281/zenodo.21860668) (Zenodo, with formal proofs) — which shows that an agent deriving authority from the authenticated channel is *structurally* immune to a spoofed instruction, no matter how convincing the text. That work secures which instructions an agent obeys; Warden applies the same principle one layer out, to which counterparts it trusts and what it may do on your behalf.
+
 ## The four sponsors, each doing real work
 
 | Sponsor | Role |
