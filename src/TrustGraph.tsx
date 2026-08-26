@@ -360,7 +360,15 @@ export function TrustGraph() {
   );
 
   return (
-    <>
+    <section className="section">
+      <div className="section-head">
+        <span className="section-label">[ trust map ]</span>
+        <h2 className="section-title">Who vouches for whom</h2>
+        <span className="section-note">
+          Your agent’s live map of trusted counterparts. Verified hubs vouch for
+          the companies that reach you through them; held senders sit apart.
+        </span>
+      </div>
       <div className="term">
         {bar(false)}
         <div className="graph-webgl" ref={containerRef}>
@@ -397,7 +405,7 @@ export function TrustGraph() {
           </div>
         </div>
       )}
-    </>
+    </section>
   );
 }
 
