@@ -304,6 +304,7 @@ export function TrustGraph() {
           {selected.total} authenticated
         </span>
       </div>
+      <NodeReputation domain={selected.id} />
       {selected.inheritedTrust && selected.viaHub && selected.verified === 0 && (
         <div className="node-detail-note">
           own record ({selected.grade}) — trusted only via its hub, below
@@ -495,6 +496,29 @@ function ExpandedGraph({
         onBackgroundClick={onBg}
       />
       {detail}
+    </div>
+  );
+}
+
+// A counterpart's network-wide reputation standing (attestable events only:
+// continuity confirmations / suspected takeovers). Shown in the node panel so
+// the third trust axis is visible where you inspect a counterpart.
+function NodeReputation({ domain }: { domain: string }) {
+  const rep = useQuery(api.reputation.forDomain, { domain });
+  if (!rep || rep.standing === "unknown") return null;
+  const cls =
+    rep.standing === "compromised" ? "rep-bad" : "rep-good";
+  return (
+    <div className={`node-rep ${cls}`}>
+      <span className="node-rep-dot" />
+      {rep.standing === "compromised" ? (
+        <span>
+          flagged — {rep.takeovers} suspected takeover
+          {rep.takeovers === 1 ? "" : "s"} across the network
+        </span>
+      ) : (
+        <span>continuity confirmed {rep.confirmed}× · good standing</span>
+      )}
     </div>
   );
 }

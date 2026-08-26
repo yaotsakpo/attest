@@ -33,6 +33,7 @@ import type * as pipeline from "../pipeline.js";
 import type * as policy from "../policy.js";
 import type * as profiles from "../profiles.js";
 import type * as registry from "../registry.js";
+import type * as reputation from "../reputation.js";
 import type * as vault from "../vault.js";
 
 import type {
@@ -67,6 +68,7 @@ declare const fullApi: ApiFromModules<{
   policy: typeof policy;
   profiles: typeof profiles;
   registry: typeof registry;
+  reputation: typeof reputation;
   vault: typeof vault;
 }>;
 

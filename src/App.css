@@ -1890,3 +1890,19 @@ table.data.registry-cols {
 .cont-det { font-family: var(--mono); font-size: 10px; color: var(--accent); }
 .cont-verdict-line { font-size: var(--t-sm); color: var(--ink); line-height: 1.5; }
 .cont-note { color: var(--ink-3); font-size: var(--t-xs); }
+
+/* node reputation (third axis) in the trust-graph panel */
+.node-rep {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-xs);
+  margin-top: var(--space-sm);
+  padding-top: var(--space-sm);
+  border-top: 1px solid var(--term-border);
+}
+.node-rep-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.node-rep.rep-good { color: var(--good); }
+.node-rep.rep-good .node-rep-dot { background: var(--good); }
+.node-rep.rep-bad { color: var(--bad); }
+.node-rep.rep-bad .node-rep-dot { background: var(--bad); }
