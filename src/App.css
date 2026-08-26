@@ -986,11 +986,12 @@ table.data.registry-cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
-  /* board scrolls vertically to reach the 2nd row of columns; each column
-     ALSO scrolls its own cards internally (both scroll models coexist) */
-  overflow-y: auto;
+  padding: var(--space-md);
   align-content: start;
-  padding-right: 2px;
+}
+/* in fullscreen, show all 6 stages in one row */
+.panel-modal-body .board {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
 }
 .board::-webkit-scrollbar {
   width: 6px;
@@ -1009,11 +1010,15 @@ table.data.registry-cols {
 .column {
   border: 1px solid var(--term-border);
   border-radius: var(--radius-sm);
-  background: var(--term-bg);
-  height: 340px; /* fixed → cards scroll INSIDE each column */
+  background: var(--surface);
+  height: 300px; /* fixed → cards scroll INSIDE each column */
   display: flex;
   flex-direction: column;
   overflow: hidden;
+}
+.panel-modal-body .column {
+  height: 100%;
+  min-height: 400px;
 }
 .column-title {
   flex-shrink: 0;

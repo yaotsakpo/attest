@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { useQuery, useMutation, usePaginatedQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useInfiniteScroll } from "./useInfiniteScroll";
+import { ExpandablePanel } from "./ExpandablePanel";
 
 function domainOf(addr: string): string {
   const m = addr.match(/@(.+)$/);
@@ -20,6 +21,7 @@ export function Activity() {
     loadMore,
   } = usePaginatedQuery(api.activity.log, {}, { initialNumItems: 25 });
   const [q, setQ] = useState("");
+  const [expanded, setExpanded] = useState(false);
 
   const term = q.trim().toLowerCase();
   const filtered = term
@@ -48,7 +50,20 @@ export function Activity() {
         </span>
       </div>
 
-      <div className="activity-body">
+      <ExpandablePanel
+        path="agent@jobcopilot ~ inbox"
+        expanded={expanded}
+        onToggle={setExpanded}
+        tag={
+          <input
+            className="table-search"
+            placeholder="search sender or subject…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+            aria-label="Search the agent inbox"
+          />
+        }
+      >
       {held && held.length > 0 && (
         <div className="held-stack">
           {held.map((e) => (
@@ -85,23 +100,7 @@ export function Activity() {
         </div>
       )}
 
-      <div className="term">
-        <div className="term-bar">
-          <span className="term-lights">
-            <span className="term-light tl-r" />
-            <span className="term-light tl-y" />
-            <span className="term-light tl-g" />
-          </span>
-          <span className="term-path">agent@jobcopilot ~ inbox</span>
-          <input
-            className="table-search"
-            placeholder="search sender or subject…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            aria-label="Search the agent inbox"
-          />
-        </div>
-        <div className="term-body table-scroll">
+        <div className="table-scroll">
           <table className="data">
             <thead>
               <tr>
@@ -155,8 +154,7 @@ export function Activity() {
           </>
         )}
         {status === "LoadingMore" && <div className="load-more muted">Loading…</div>}
-      </div>
-      </div>
+      </ExpandablePanel>
     </section>
   );
 }

@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
+import { ExpandablePanel } from "./ExpandablePanel";
 
 const PER_COLUMN = 5;
 
@@ -42,6 +43,7 @@ function Status({ state }: { state: string }) {
 // lands and advance forward-only.
 export function Board() {
   const apps = useQuery(api.board.myApplications);
+  const [expanded, setExpanded] = useState(false);
 
   return (
     <section className="section">
@@ -53,38 +55,49 @@ export function Board() {
           Each one taught the registry who to trust.
         </span>
       </div>
-      {apps === undefined ? (
-        <div className="board">
-          {STAGES.map((stage) => (
-            <div key={stage.key} className="column">
-              <div className="column-title">
-                <span>{stage.label}</span>
-              </div>
-              <div className="column-cards">
-                <div className="card card-skeleton">
-                  <span className="skeleton" />
-                  <span className="skeleton" style={{ width: "45%" }} />
+      <ExpandablePanel
+        path="agent@jobcopilot ~ conversations"
+        expanded={expanded}
+        onToggle={setExpanded}
+        tag={
+          apps ? (
+            <span className="term-tag">{apps.length} threads</span>
+          ) : undefined
+        }
+      >
+        {apps === undefined ? (
+          <div className="board">
+            {STAGES.map((stage) => (
+              <div key={stage.key} className="column">
+                <div className="column-title">
+                  <span>{stage.label}</span>
+                </div>
+                <div className="column-cards">
+                  <div className="card card-skeleton">
+                    <span className="skeleton" />
+                    <span className="skeleton" style={{ width: "45%" }} />
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
-        </div>
-      ) : apps.length === 0 ? (
-        <div className="board-empty">
-          No conversations yet. When someone emails your agent, a thread appears
-          here on its own.
-        </div>
-      ) : (
-        <div className="board">
-          {STAGES.map((stage) => (
-            <Column
-              key={stage.key}
-              label={stage.label}
-              cards={apps.filter((a) => a.stage === stage.key)}
-            />
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        ) : apps.length === 0 ? (
+          <div className="board-empty">
+            No conversations yet. When someone emails your agent, a thread
+            appears here on its own.
+          </div>
+        ) : (
+          <div className="board">
+            {STAGES.map((stage) => (
+              <Column
+                key={stage.key}
+                label={stage.label}
+                cards={apps.filter((a) => a.stage === stage.key)}
+              />
+            ))}
+          </div>
+        )}
+      </ExpandablePanel>
     </section>
   );
 }
