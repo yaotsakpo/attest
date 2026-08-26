@@ -34,7 +34,7 @@ export const demo = action({
     verdict: v.string(),
   }),
   handler: async (_ctx, args) => {
-    const agentX = "your-agent@warden";
+    const agentX = "your-agent@attest";
     const agentY = "counterpart@acme.com";
 
     // The verifier (your agent) holds the genuine trust-time seed.

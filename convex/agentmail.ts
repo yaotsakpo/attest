@@ -38,14 +38,14 @@ export const provisionInbox = action({
       };
     }
 
-    // Mint THIS user's own inbox under the Warden-owned AgentMail account.
+    // Mint THIS user's own inbox under the Attest-owned AgentMail account.
     // `client_id` is per-user and idempotent, so a retry returns the same inbox
     // instead of creating a duplicate — and, crucially, two different users
     // never collide onto one shared inbox.
     const res = await fetch(`${BASE}/inboxes`, {
       method: "POST",
       headers: headers(),
-      body: JSON.stringify({ client_id: `warden-${userId}` }),
+      body: JSON.stringify({ client_id: `attest-${userId}` }),
     });
     if (!res.ok) {
       throw new Error(`AgentMail create inbox failed: ${res.status}`);
@@ -69,7 +69,7 @@ export const provisionInbox = action({
         body: JSON.stringify({
           url: `${site}/webhooks/agentmail`,
           event_types: ["message.received", "message.received.unauthenticated"],
-          client_id: `warden-hook-${userId}`,
+          client_id: `attest-hook-${userId}`,
         }),
       });
       // The inbound endpoint verifies the Svix signature when

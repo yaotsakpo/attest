@@ -48,7 +48,7 @@ function SignIn() {
   return (
     <div className="auth-wrap">
       <form className="auth-card" onSubmit={onSubmit}>
-        <h1 className="auth-title">Warden</h1>
+        <h1 className="auth-title">Attest</h1>
         <p className="auth-sub">
           Your agent talks to other agents and people over email, and never hands
           your info to a counterpart it can’t verify.
@@ -91,7 +91,7 @@ function Dashboard() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <h1 className="app-title">Warden</h1>
+          <h1 className="app-title">Attest</h1>
           <span className="app-tagline">the trust layer for your agent</span>
         </div>
         <div className="header-actions">

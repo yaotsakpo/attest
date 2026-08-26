@@ -279,7 +279,7 @@ export function TrustGraph() {
         <span className="term-light tl-y" />
         <span className="term-light tl-g" />
       </span>
-      <span className="term-path">agent@warden ~ trust-map</span>
+      <span className="term-path">agent@attest ~ trust-map</span>
       <button className="term-expand" onClick={() => setExpanded(!close)}>
         {close ? "✕ close" : "⤢ expand"}
       </button>

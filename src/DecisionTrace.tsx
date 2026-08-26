@@ -14,6 +14,13 @@ type TraceEvent = {
   registryDomain?: string | null;
   requestedAction: string;
   requestedAmount: number | null;
+  tier: "in_network" | "verified" | "unverified";
+};
+
+const TIER_LABEL: Record<string, string> = {
+  in_network: "in Attest's network — identity held by Attest",
+  verified: "verified, outside the network — earns trust by behavior",
+  unverified: "couldn't verify — held by default",
 };
 
 const ACTION_LABEL: Record<string, string> = {
@@ -56,6 +63,11 @@ export function DecisionTrace({ ev }: { ev: TraceEvent }) {
             </>
           )}
         </span>
+      </div>
+
+      <div className="trace-step">
+        <span className="trace-k">tier</span>
+        <span className="trace-v">{TIER_LABEL[ev.tier] ?? ev.tier}</span>
       </div>
 
       <div className="trace-step">

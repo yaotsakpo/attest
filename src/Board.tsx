@@ -56,7 +56,7 @@ export function Board() {
         </span>
       </div>
       <ExpandablePanel
-        path="agent@warden ~ conversations"
+        path="agent@attest ~ conversations"
         expanded={expanded}
         onToggle={setExpanded}
         tag={

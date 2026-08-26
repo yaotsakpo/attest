@@ -1,4 +1,4 @@
-// Warden's policy engine — the user-owned ruleset the agent consults before it
+// Attest's policy engine — the user-owned ruleset the agent consults before it
 // acts on the user's behalf. Structured input (Inbin schema pattern), NO LLM in
 // the enforcement path: rules are typed, and evaluation is deterministic.
 //

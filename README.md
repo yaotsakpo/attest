@@ -1,10 +1,10 @@
-# Warden
+# Attest
 
-**A stranger just emailed your AI agent asking for your SSN. Warden is the reason it said no.**
+**A stranger just emailed your AI agent asking for your SSN. Attest is the reason it said no.**
 
 Your agent is starting to act for you — reading email, replying, soon paying invoices and sharing your details. The moment it talks to *other* agents and people, one question decides everything: **who is it allowed to trust, and what is it allowed to do on your behalf?**
 
-Warden is the trust layer that answers it. Give your agent an email inbox and Warden does three things:
+Attest is the trust layer that answers it. Give your agent an email inbox and Attest does three things:
 
 - **Earn** — it builds a live trust score for every counterpart from the mail it actually receives (authenticated, not SEO).
 - **Hold** — it refuses to act on anything it can't stand behind: an unverified sender, a request for your SSN, a payment over your limit. That waits for you.
@@ -22,7 +22,7 @@ Built for the **Convex All Gas Hackathon** on Convex + AgentMail + Firecrawl + O
 
 **Hold.** A user-owned **policy engine** (structured rules, no LLM in the enforcement path) governs what the agent may do on its own: *reply / payment / share info / custom*, each with conditions (amount threshold, require-verified, min-grade, per-domain scope) and an allow / hold / deny decision. First match wins; anything unmatched holds. An unauthorized payment **always** holds, and a remembered payment is capped at the amount you approved.
 
-**Learn.** Approve a held item and Warden offers to *remember the decision* — one click writes a standing rule so the agent handles that counterpart itself next time.
+**Learn.** Approve a held item and Attest offers to *remember the decision* — one click writes a standing rule so the agent handles that counterpart itself next time.
 
 ### Under the hood
 
@@ -31,9 +31,9 @@ Built for the **Convex All Gas Hackathon** on Convex + AgentMail + Firecrawl + O
 
 ## The principle
 
-Warden applies a single idea: **derive trust from the authenticated channel, not from message content.** A message that *claims* to be from a company means nothing; a message that *authenticated* as that domain is evidence. The agent never trusts what a message says about itself.
+Attest applies a single idea: **derive trust from the authenticated channel, not from message content.** A message that *claims* to be from a company means nothing; a message that *authenticated* as that domain is evidence. The agent never trusts what a message says about itself.
 
-This is the same principle behind my published research, [*Context References Over Payloads: Authority Scoped to the Predicate, Not the Principal*](https://doi.org/10.5281/zenodo.21860668) (Zenodo, with formal proofs) — which shows that an agent deriving authority from the authenticated channel is *structurally* immune to a spoofed instruction, no matter how convincing the text. That work secures which instructions an agent obeys; Warden applies the same principle one layer out, to which counterparts it trusts and what it may do on your behalf.
+This is the same principle behind my published research, [*Context References Over Payloads: Authority Scoped to the Predicate, Not the Principal*](https://doi.org/10.5281/zenodo.21860668) (Zenodo, with formal proofs) — which shows that an agent deriving authority from the authenticated channel is *structurally* immune to a spoofed instruction, no matter how convincing the text. That work secures which instructions an agent obeys; Attest applies the same principle one layer out, to which counterparts it trusts and what it may do on your behalf.
 
 ## The four sponsors, each doing real work
 
@@ -84,4 +84,4 @@ npm run dev           # Vite frontend
 
 ## Any counterpart
 
-Warden works for anyone your agent corresponds with over email — vendors, clients, recruiters, services. The conversations board is one view of the same trust engine that powers the registry, the gate, and the graph.
+Attest works for anyone your agent corresponds with over email — vendors, clients, recruiters, services. The conversations board is one view of the same trust engine that powers the registry, the gate, and the graph.

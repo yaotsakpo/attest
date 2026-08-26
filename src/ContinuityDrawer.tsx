@@ -48,7 +48,7 @@ export function ContinuityDrawer({
   }
 
   return (
-    <Drawer open={open} onClose={onClose} path="agent@warden ~ continuity">
+    <Drawer open={open} onClose={onClose} path="agent@attest ~ continuity">
       <p className="drawer-intro">
         Verifying an address is not enough. A counterpart whose address is taken
         over inherits its trust. The continuity handshake proves a counterpart is{" "}

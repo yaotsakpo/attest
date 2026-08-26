@@ -40,7 +40,7 @@ export function VaultDrawer({
   }
 
   return (
-    <Drawer open={open} onClose={onClose} path="agent@warden ~ vault">
+    <Drawer open={open} onClose={onClose} path="agent@attest ~ vault">
       <p className="drawer-intro">
         What your agent knows about you and may share on your behalf. Flag what’s
         sensitive — the agent never auto-releases a sensitive field to a

@@ -19,7 +19,7 @@
 
   <!-- wordmark -->
   <text x="260" y="205" font-family="'JetBrains Mono', ui-monospace, monospace"
-        font-size="72" font-weight="700" fill="#f3f4f6">Warden</text>
+        font-size="72" font-weight="700" fill="#f3f4f6">Attest</text>
   <text x="262" y="250" font-family="'JetBrains Mono', ui-monospace, monospace"
         font-size="26" fill="#34d399">the trust layer for your AI agent</text>
 

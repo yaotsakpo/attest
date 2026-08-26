@@ -5,6 +5,7 @@ import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
 import { classifyRequest } from "./lib/policyEngine";
+import { tierFor, isNetworkDomain, type Tier } from "./lib/membership";
 
 export type ActivityItem = {
   _id: Doc<"events">["_id"];
@@ -20,6 +21,7 @@ export type ActivityItem = {
   // server). The requested action classified the SAME way the gate classified it.
   requestedAction: string;
   requestedAmount: number | null;
+  tier: Tier; // trust tier: in_network | verified | unverified
   createdAt: number;
 };
 
@@ -39,6 +41,11 @@ const activityItem = v.object({
   registryDomain: v.union(v.string(), v.null()),
   requestedAction: v.string(),
   requestedAmount: v.union(v.number(), v.null()),
+  tier: v.union(
+    v.literal("in_network"),
+    v.literal("verified"),
+    v.literal("unverified"),
+  ),
   createdAt: v.number(),
 });
 
@@ -61,6 +68,13 @@ function toItem(e: Doc<"events">): ActivityItem {
     registryDomain: e.registryDomain ?? null,
     requestedAction: action,
     requestedAmount: amount ?? null,
+    tier: tierFor({
+      domain: e.registryDomain ?? "",
+      senderVerified: e.senderVerified,
+      isNetworkMember: isNetworkDomain(
+        e.registryDomain ?? e.fromAddress.split("@")[1] ?? "",
+      ),
+    }),
     createdAt: e._creationTime,
   };
 }

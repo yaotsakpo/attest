@@ -48,7 +48,7 @@ export function ActivityLog() {
       </div>
 
       <ExpandablePanel
-        path="agent@warden ~ activity-log"
+        path="agent@attest ~ activity-log"
         expanded={expanded}
         onToggle={setExpanded}
         tag={

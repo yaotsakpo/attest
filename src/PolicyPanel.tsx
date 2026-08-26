@@ -99,7 +99,7 @@ export function PolicyPanel({
   }
 
   return (
-    <Drawer open={open} onClose={onClose} path="agent@warden ~ policy">
+    <Drawer open={open} onClose={onClose} path="agent@attest ~ policy">
           <AgentConnection />
 
           <p className="drawer-intro">
@@ -281,7 +281,7 @@ export function PolicyPanel({
 }
 
 // The agent's email identity, folded into the top of the drawer next to the
-// rules that govern it. Shows the inbox address (Warden auto-provisions it — no
+// rules that govern it. Shows the inbox address (Attest auto-provisions it — no
 // key to paste), and a non-destructive "re-link" that re-registers the inbound
 // webhook if mail ever stopped flowing. Reconnect never mints a new inbox, which
 // would orphan your address and its history.
@@ -346,7 +346,7 @@ function AgentConnection() {
             {busy ? "Connecting…" : "Connect inbox"}
           </button>
           <p className="agent-conn-hint">
-            Warden gives your agent its own email address — no setup, nothing to
+            Attest gives your agent its own email address — no setup, nothing to
             paste. Click to create it.
           </p>
         </>

@@ -22,6 +22,7 @@ import type * as inbound from "../inbound.js";
 import type * as lib_continuity from "../lib/continuity.js";
 import type * as lib_disclosureGate from "../lib/disclosureGate.js";
 import type * as lib_grade from "../lib/grade.js";
+import type * as lib_membership from "../lib/membership.js";
 import type * as lib_policyEngine from "../lib/policyEngine.js";
 import type * as lib_ruleExtract from "../lib/ruleExtract.js";
 import type * as lib_senderAuth from "../lib/senderAuth.js";
@@ -53,6 +54,7 @@ declare const fullApi: ApiFromModules<{
   "lib/continuity": typeof lib_continuity;
   "lib/disclosureGate": typeof lib_disclosureGate;
   "lib/grade": typeof lib_grade;
+  "lib/membership": typeof lib_membership;
   "lib/policyEngine": typeof lib_policyEngine;
   "lib/ruleExtract": typeof lib_ruleExtract;
   "lib/senderAuth": typeof lib_senderAuth;
