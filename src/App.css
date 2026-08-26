@@ -214,10 +214,10 @@ button {
   margin: 0;
 }
 
-/* --- App shell --- */
+/* --- App shell — full width, edge-to-edge like a terminal --- */
 .app {
-  max-width: 1200px;
-  margin: 0 auto;
+  width: 100%;
+  margin: 0;
   padding: 0 var(--space-xl) 96px;
 }
 .app-header {
@@ -423,36 +423,39 @@ table.data {
   border-collapse: collapse;
   font-size: var(--t-sm);
 }
-/* Registry column sizing: fixed narrow metadata columns, Domain takes slack,
-   so a single row still reads as a composed table, not stretched. */
+/* Registry columns: percentage-based fixed layout so the table always fits its
+   container (never overflows/clips), regardless of column width. */
 table.data.registry-cols {
-  table-layout: auto;
+  table-layout: fixed;
 }
-.registry-cols th.rank,
-.registry-cols td.rank {
-  width: 48px;
-}
+.registry-cols th:nth-child(1),
+.registry-cols td:nth-child(1) {
+  width: 6%;
+} /* # */
 .registry-cols th:nth-child(2),
 .registry-cols td:nth-child(2) {
-  width: 80px;
-}
-/* Domain column takes the slack and stays left-aligned under its header */
+  width: 12%;
+} /* grade */
 .registry-cols th:nth-child(3),
 .registry-cols td:nth-child(3) {
-  width: auto;
+  width: 34%;
   text-align: left;
-}
+} /* domain (slack) */
 .registry-cols th:nth-child(4),
-.registry-cols td:nth-child(4),
+.registry-cols td:nth-child(4) {
+  width: 20%;
+} /* score */
 .registry-cols th:nth-child(5),
 .registry-cols td:nth-child(5) {
-  width: 84px;
-}
+  width: 14%;
+} /* verified */
 .registry-cols th:nth-child(6),
 .registry-cols td:nth-child(6) {
-  width: 78px;
-}
+  width: 14%;
+} /* last seen */
 .registry-cols td.m {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 /* tighter cell padding inside the half-width column so 6 cols fit */
