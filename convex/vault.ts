@@ -6,6 +6,16 @@ import type { Doc, Id } from "./_generated/dataModel";
 // The signed-in user's vault rows. Auth-scoped; identity derived server-side.
 export const list = query({
   args: {},
+  returns: v.array(
+    v.object({
+      _id: v.id("vault"),
+      _creationTime: v.number(),
+      userId: v.id("users"),
+      label: v.string(),
+      value: v.string(),
+      sensitive: v.boolean(),
+    }),
+  ),
   handler: async (ctx): Promise<Doc<"vault">[]> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return [];
@@ -22,6 +32,7 @@ export const add = mutation({
     value: v.string(),
     sensitive: v.boolean(),
   },
+  returns: v.union(v.id("vault"), v.null()),
   handler: async (ctx, args): Promise<Id<"vault"> | null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
@@ -36,9 +47,36 @@ export const add = mutation({
   },
 });
 
+// Edit a vault row's label and/or value (and optionally sensitivity). Ownership
+// enforced. Empty label is rejected (keeps the row unchanged).
+export const update = mutation({
+  args: {
+    id: v.id("vault"),
+    label: v.string(),
+    value: v.string(),
+    sensitive: v.optional(v.boolean()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return null;
+    const row = await ctx.db.get("vault", args.id);
+    if (!row || row.userId !== userId) return null; // ownership check
+    const label = args.label.trim();
+    if (!label) return null;
+    await ctx.db.patch("vault", args.id, {
+      label,
+      value: args.value.trim(),
+      ...(args.sensitive === undefined ? {} : { sensitive: args.sensitive }),
+    });
+    return null;
+  },
+});
+
 // Toggle a row's sensitive flag — the user decides what's precious.
 export const setSensitive = mutation({
   args: { id: v.id("vault"), sensitive: v.boolean() },
+  returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;
@@ -51,6 +89,7 @@ export const setSensitive = mutation({
 
 export const remove = mutation({
   args: { id: v.id("vault") },
+  returns: v.null(),
   handler: async (ctx, args): Promise<null> => {
     const userId = await getAuthUserId(ctx);
     if (!userId) return null;

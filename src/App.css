@@ -988,6 +988,49 @@ table.data.registry-cols {
   border-radius: 0;
 }
 
+/* inline vault editing */
+.vault-inline {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--accent);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  padding: 4px 8px;
+  border-radius: 0;
+}
+.vault-inline.mono {
+  font-family: var(--mono);
+}
+.vault-inline:focus {
+  outline: none;
+}
+.vault-edit-value {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.reveal-btn {
+  flex-shrink: 0;
+  background: transparent;
+  border: 1px solid var(--term-border);
+  color: var(--ink-2);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  transition: color 120ms ease;
+}
+.reveal-btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.vault-actions {
+  display: flex;
+  gap: var(--space-sm);
+  justify-content: flex-end;
+}
+
 /* --- Held-for-approval stack (the dramatic surface) --- */
 .held-stack {
   display: flex;
