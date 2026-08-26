@@ -44,10 +44,10 @@ function SignIn() {
   return (
     <div className="auth-wrap">
       <form className="auth-card" onSubmit={onSubmit}>
-        <h1 className="auth-title">Job Copilot</h1>
+        <h1 className="auth-title">Warden</h1>
         <p className="auth-sub">
-          An agent that answers recruiters for you, and won’t hand your info to a
-          sender it can’t verify.
+          Your agent talks to other agents and people over email, and never hands
+          your info to a counterpart it can’t verify.
         </p>
         <input name="email" type="email" placeholder="you@email.com" required />
         <input
@@ -83,8 +83,8 @@ function Dashboard() {
     <div className="app">
       <header className="app-header">
         <div className="brand">
-          <h1 className="app-title">Job Copilot</h1>
-          <span className="app-tagline">trust registry for your agent</span>
+          <h1 className="app-title">Warden</h1>
+          <span className="app-tagline">the trust layer for your agent</span>
         </div>
         <div className="header-actions">
           <button

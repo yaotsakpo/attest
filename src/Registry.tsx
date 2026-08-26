@@ -70,9 +70,10 @@ export function Registry() {
     <section className="section">
       <div className="section-head">
         <span className="section-label">[ registry ]</span>
-        <h2 className="section-title">Domains my agent trusts</h2>
+        <h2 className="section-title">Who my agent trusts</h2>
         <span className="section-note">
-          Earned from observed authenticated email, not search ranking.
+          Counterparts ranked by observed authenticated email, not search ranking.
+          Your agent checks this before it shares anything.
         </span>
       </div>
 

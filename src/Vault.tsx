@@ -36,7 +36,7 @@ export function Vault() {
         <h2 className="section-title">What my agent can share</h2>
         <span className="section-note">
           You decide what’s sensitive. The agent never auto-releases a sensitive
-          field to a sender it can’t verify.
+          field to a counterpart it can’t verify.
         </span>
       </div>
 
@@ -44,7 +44,7 @@ export function Vault() {
         <form className="vault-row-form" onSubmit={onAdd}>
           <input
             type="text"
-            placeholder="Field (e.g. Work authorization)"
+            placeholder="Field (e.g. Availability, Bank account, SSN)"
             value={label}
             onChange={(e) => setLabel(e.target.value)}
             aria-label="Field label"
@@ -73,8 +73,9 @@ export function Vault() {
           <div className="empty">Loading…</div>
         ) : rows.length === 0 ? (
           <div className="empty">
-            Nothing yet. Add the info a recruiter might ask for during an
-            application, and flag what’s sensitive.
+            Nothing yet. Add anything your agent might share on your behalf —
+            availability, an account number, your address — and flag what’s
+            sensitive.
           </div>
         ) : (
           <div className="table-scroll">

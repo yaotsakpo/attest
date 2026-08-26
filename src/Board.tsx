@@ -5,13 +5,16 @@ import type { Doc } from "../convex/_generated/dataModel";
 
 const PER_COLUMN = 5;
 
+// Generic conversation states (was job stages) — the agent's threads with any
+// counterpart, not just recruiters. Existing stage keys are reused/relabelled
+// so no backend change is needed.
 const STAGES = [
-  { key: "applied", label: "Applied" },
-  { key: "screen", label: "Screen" },
-  { key: "technical", label: "Technical" },
-  { key: "onsite", label: "Onsite" },
-  { key: "offer", label: "Offer" },
-  { key: "rejected", label: "Rejected" },
+  { key: "applied", label: "New" },
+  { key: "screen", label: "Active" },
+  { key: "technical", label: "In progress" },
+  { key: "onsite", label: "Needs you" },
+  { key: "offer", label: "Resolved" },
+  { key: "rejected", label: "Closed" },
 ] as const;
 
 function Status({ state }: { state: string }) {
@@ -43,10 +46,11 @@ export function Board() {
   return (
     <section className="section">
       <div className="section-head">
-        <span className="section-label">[ pipeline ]</span>
-        <h2 className="section-title">My applications</h2>
+        <span className="section-label">[ threads ]</span>
+        <h2 className="section-title">My conversations</h2>
         <span className="section-note">
-          Each card is a real recruiter thread the registry learned from.
+          Every conversation your agent is handling with another agent or person.
+          Each one taught the registry who to trust.
         </span>
       </div>
       {apps === undefined ? (
@@ -67,7 +71,7 @@ export function Board() {
         </div>
       ) : apps.length === 0 ? (
         <div className="board-empty">
-          No applications yet. When a recruiter emails your agent, a card appears
+          No conversations yet. When someone emails your agent, a thread appears
           here on its own.
         </div>
       ) : (

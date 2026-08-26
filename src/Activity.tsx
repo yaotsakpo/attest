@@ -42,8 +42,9 @@ export function Activity() {
         <span className="section-label">[ agent ]</span>
         <h2 className="section-title">What my agent did</h2>
         <span className="section-note">
-          It answers verified senders for you, and holds anything it can’t
-          verify, especially requests for sensitive info.
+          It replies to verified counterparts for you, and holds anything it
+          can’t verify, especially requests for sensitive info like your SSN,
+          bank details, or address.
         </span>
       </div>
 
