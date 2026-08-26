@@ -12,6 +12,8 @@
 
 **Cut line (spec):** Tasks 1-6 + 11 = MUST-HAVE (complete winning demo). Tasks 7-10 = cuttable tail if the Sep 15-17 Summit eats week 3; keep at least a minimal Firecrawl scrape so all four sponsors are represented.
 
+**Cost note (from the hackathon page):** NO OpenAI or Convex credits are provided during the build — OpenAI API calls are paid out of pocket (Codex credits are a *prize*, not a build allowance). Extraction/drafting use `gpt-4o-mini` at a few hundred tokens per email, so real spend is cents; just don't loop it. Firecrawl has $20k credits after Luma registration; AgentMail is on its free/sponsor tier.
+
 **Verified API notes (used throughout, confirmed 2026-08-25):**
 - Enums: `v.union(v.literal("a"), v.literal("b"))` — no `v.enum`. Refs: `v.id("table")`. `_id`/`_creationTime` auto.
 - `ctx.db` in query/mutation only; actions/httpActions use `ctx.runQuery`/`ctx.runMutation`/`ctx.runAction` + `ctx.scheduler.runAfter(ms, internal.file.fn, args)`.
@@ -119,14 +121,16 @@ git add convex/schema.ts && git commit -m "feat: convex schema (profiles, applic
 
 ## Task 2: Convex Auth (email/password) + per-user scoping
 
+> **VERSION WARNING (from the hackathon page):** the listed resource is **"Convex Auth v2 super alpha"**, NOT the beta this task was first drafted against. BEFORE running the commands below, open the hackathon page's "Convex Auth v2 super alpha" resource and reconcile: the package name, the `@auth/core` pin, the provider import path, and the client provider component may all differ in v2. Treat the code in this task as the v1/beta shape to adapt from — the *structure* (Password provider, `addHttpRoutes`, a client provider wrapping the app, `getAuthUserId` in queries) is stable; the exact imports/version pins are what to verify. If v2's `getAuthUserId` signature changed, Tasks 6/7/9 that call it must match.
+
 **Files:**
 - Create: `convex/auth.ts`, `convex/http.ts`
 - Modify: `src/main.tsx` (client provider)
 
-- [ ] **Step 1: Install + run the auth wizard**
+- [ ] **Step 1: Install + run the auth wizard** (pin versions PER the v2 super-alpha doc — the pin below is the beta's and may be wrong for v2)
 
 ```bash
-npm install @convex-dev/auth @auth/core@0.41.1
+npm install @convex-dev/auth @auth/core@0.41.1   # <-- verify both against the v2 super-alpha resource first
 npx @convex-dev/auth   # generates auth.ts + adds http routes; sets env vars
 ```
 
