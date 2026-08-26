@@ -5,7 +5,8 @@ import { useInfiniteScroll } from "./useInfiniteScroll";
 import { ExpandablePanel } from "./ExpandablePanel";
 
 function domainOf(addr: string): string {
-  const m = addr.match(/@(.+)$/);
+  // handles "Name <user@domain>" and "user@domain" — strips display name + <>
+  const m = addr.match(/@([^>\s]+)/);
   return m ? m[1] : addr;
 }
 
