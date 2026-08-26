@@ -10,23 +10,7 @@ import { tierFor } from "./lib/membership";
 import { continuityVerdict } from "./lib/continuityState";
 import { aggregateReputation } from "./lib/reputation";
 import { deriveSeed } from "./lib/continuity";
-
-// Attest agents embed the continuity response in a message as a tagged marker
-// that every Attest agent knows to read (and ordinary mail never carries). We
-// only assert VALIDITY here to the extent the marker is present + well-formed;
-// full cryptographic verification against the stored seed is done where the seed
-// is available. Real inbound mail carries no marker → hasResponse=false, which is
-// exactly the takeover signal for a previously-seeded counterpart.
-function extractContinuityProof(rawText: string): {
-  hasResponse: boolean;
-  responseValid: boolean;
-} {
-  const m = rawText.match(/\[attest:continuity:([a-f0-9]{16,})\]/i);
-  if (!m) return { hasResponse: false, responseValid: false };
-  // Presence of a well-formed marker. (Cryptographic match against the seed is
-  // asserted in the continuity module; here we gate on carriage of the token.)
-  return { hasResponse: true, responseValid: m[1].length >= 16 };
-}
+import { readToken, verifyToken } from "./lib/continuityToken";
 
 type Stage = Doc<"applications">["stage"];
 
@@ -117,10 +101,18 @@ export const applyExtraction = internalMutation({
         )
         .unique()
         .catch(() => null);
-      // Whether the inbound message carried a valid rotating response. Attest
-      // agents embed it; real mail won't, so a seeded member that stops carrying
-      // it is exactly the takeover signal we watch for.
-      const proof = extractContinuityProof(ev.rawText);
+      // REAL cryptographic check: read the token and verify it against the
+      // stored seed at the step we expect. Marker-presence is NOT enough — an
+      // impostor can include a well-formed token, but without the seed it won't
+      // verify. A seeded member that sends no token, or a wrong one, is the
+      // takeover signal.
+      const tokenHex = readToken(ev.rawText);
+      const expectedStep = rec ? rec.counter + 1 : 0;
+      const responseValid =
+        !!rec && rec.seeded && tokenHex !== null
+          ? await verifyToken(rec.seed, expectedStep, tokenHex)
+          : false;
+      const proof = { hasResponse: tokenHex !== null, responseValid };
       const verdict = continuityVerdict(
         rec
           ? { seeded: rec.seeded, counter: rec.counter, lastStatus: rec.status }
@@ -128,6 +120,11 @@ export const applyExtraction = internalMutation({
         proof,
       );
       continuityHold = verdict.shouldHold;
+      // On a confirmed step, advance the ratchet so the next message must carry
+      // the NEXT value (no replay).
+      if (rec && verdict.status === "confirmed") {
+        await ctx.db.patch(rec._id, { counter: expectedStep });
+      }
       // Record the outcome as a reputation event + update the continuity record.
       if (rec && verdict.status !== "not_applicable") {
         await ctx.db.patch(rec._id, {

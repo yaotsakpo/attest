@@ -2,6 +2,7 @@ import { action, internalAction } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { emitToken } from "./lib/continuityToken";
 
 // AgentMail REST client (raw fetch — no SDK needed in a Convex action).
 // Base + auth per docs.agentmail.to. Key is read from the deployment env.
@@ -128,10 +129,24 @@ export const sendAgentReply = internalAction({
     }
     // A short, honest reply. Auto-answers acknowledge; approved replies confirm
     // the user authorized sharing. (We never auto-compose sensitive values.)
-    const text =
+    let text =
       args.kind === "auto"
         ? "Thanks for your message — this is handled by my assistant. I've noted it and will follow up shortly."
         : "Thanks — I've reviewed and approved your request. I'll follow up with the details separately.";
+
+    // CONTINUITY: if this counterpart is a seeded in-network peer, embed the
+    // forward-secret token so THEIR agent can verify we're still the same
+    // principal. Every Attest agent reads it; ordinary recipients ignore it.
+    const domain = ev.registryDomain ?? ev.fromAddress.split("@")[1] ?? "";
+    const rec = await ctx.runQuery(internal.continuityStore.getRecord, {
+      userId: ev.userId,
+      counterpart: domain,
+    });
+    if (rec && rec.seeded) {
+      const token = await emitToken(rec.seed, rec.counter + 1);
+      text = `${text}\n\n${token}`;
+    }
+
     await ctx.runAction(internal.agentmail.sendReply, {
       inboxId: ev.agentmailInboxId,
       messageId: ev.agentmailMsgId,

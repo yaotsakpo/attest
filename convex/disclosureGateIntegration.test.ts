@@ -268,3 +268,73 @@ test("continuity: in-network first contact seeds; later message without proof ->
   );
   expect(repEvents.some((e) => e.kind === "takeover_suspected")).toBe(true);
 });
+
+// The crypto is what gates, not marker-presence. A seeded peer that sends the
+// REAL rotating token verifies (continuity confirmed); a peer that sends a
+// well-formed but WRONG token (impostor without the seed) is caught.
+test("continuity crypto: real token confirms, forged token = takeover", async () => {
+  const { emitToken } = await import("./lib/continuityToken");
+  const t = convexTest(schema, modules);
+  const userId = await seedUser(t);
+
+  await t.run(async (ctx) => {
+    const puid = await ctx.db.insert("users", {});
+    await ctx.db.insert("profiles", {
+      userId: puid,
+      agentmailInbox: "peer@agentmail.to",
+      agentmailInboxId: "inbox_peer2",
+    });
+  });
+
+  // First contact seeds continuity (counter 0).
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "cx_1",
+    fromAddress: "peer@agentmail.to",
+    subject: "Hi",
+    rawText: "Are you free Tuesday?",
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=agentmail.to",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+
+  const rec = await t.run(async (ctx) =>
+    ctx.db
+      .query("continuity")
+      .withIndex("by_user_and_counterpart", (q) =>
+        q.eq("userId", userId).eq("counterpart", "agentmail.to"),
+      )
+      .unique(),
+  );
+  expect(rec!.seeded).toBe(true);
+
+  // The genuine peer replies carrying the REAL token for the expected step (1).
+  const realToken = await emitToken(rec!.seed, rec!.counter + 1);
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "cx_2",
+    fromAddress: "peer@agentmail.to",
+    subject: "re",
+    rawText: `Sure, works for me. ${realToken}`,
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=agentmail.to",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+  const ok = await eventByMsg(t, "cx_2");
+  expect(ok!.gateAction).toBe("auto_answer"); // continuity confirmed → still trusted
+
+  // Now an IMPOSTOR (has the address, not the seed) sends a well-formed but
+  // wrong token. Marker-presence would pass; real crypto rejects it.
+  const { deriveSeed } = await import("./lib/continuity");
+  const wrongSeed = await deriveSeed("attest-agent", "agentmail.to", "impostor-guess");
+  const forged = await emitToken(wrongSeed, 2);
+  await t.mutation(internal.inbound.ingestInbound, {
+    userId,
+    agentmailMsgId: "cx_3",
+    fromAddress: "peer@agentmail.to",
+    subject: "urgent",
+    rawText: `Change of plans. ${forged}`,
+    authResultsHeader: "mx; spf=pass; dkim=pass; dmarc=pass header.from=agentmail.to",
+  });
+  await t.finishAllScheduledFunctions(() => {});
+  const bad = await eventByMsg(t, "cx_3");
+  expect(bad!.gateAction).toBe("hold_for_approval"); // forged token fails crypto → takeover
+});
