@@ -14,6 +14,15 @@
 
 **Cost note (from the hackathon page):** NO OpenAI or Convex credits are provided during the build — OpenAI API calls are paid out of pocket (Codex credits are a *prize*, not a build allowance). Extraction/drafting use `gpt-4o-mini` at a few hundred tokens per email, so real spend is cents; just don't loop it. Firecrawl has $20k credits after Luma registration; AgentMail is on its free/sponsor tier.
 
+**CORRECTIONS from Convex's own `convex/_generated/ai/guidelines.md` (targets ^1.44.0, read 2026-08-26 — these OVERRIDE the drafted code below where they conflict):**
+- **`ctx.db` accessors take the TABLE NAME first:** `ctx.db.get("events", id)`, `ctx.db.patch("applications", id, {...})`, `ctx.db.delete("events", id)`, `ctx.db.replace(...)`. The drafted tasks below use the older single-arg `ctx.db.get(id)` — fix to two-arg form when implementing.
+- **Auth: NEVER take `userId` as an arg for authorization.** Public functions derive identity via `ctx.auth.getUserIdentity()` (or `getAuthUserId(ctx)` from `@convex-dev/auth/server`). Internal functions called by the webhook MAY take `userId` (they're not an auth boundary) — that's fine. The board query (Task 6) MUST derive identity, not accept it.
+- **No `Date.now()` / `new Date()` in QUERIES** (queries don't rerun on time). It IS allowed in mutations and actions — the stage mutation's `Date.now()` is fine. The board query must take `now` as an arg if it ever needs time.
+- **Bounded reads: use `.take(n)`, not `.collect()`** unless truly returning all. The match-scan in Task 5 and the board in Task 6 should `.take()` a sane cap.
+- **Convex-function tests use `convex-test` + `vitest` + `@edge-runtime/vm`**, test files inside `convex/`, passing `import.meta.glob("./**/*.ts")` to `convexTest(schema, modules)`. The pure-TS parser (Task 3) uses plain vitest (no harness needed). Install: `npm i -D convex-test @edge-runtime/vm vitest`.
+- **Actions using Node built-ins need `"use node";`**; `fetch()` does NOT require it (default runtime has fetch). Our OpenAI/Firecrawl/AgentMail actions use `fetch` only → no `"use node";`.
+- **`internalQuery`/`internalMutation`/`internalAction` for private fns; ALWAYS include arg validators on every function.** Same-file `ctx.runQuery`/`runMutation` needs an explicit return-type annotation (TS circularity).
+
 **Verified API notes (used throughout, confirmed 2026-08-25):**
 - Enums: `v.union(v.literal("a"), v.literal("b"))` — no `v.enum`. Refs: `v.id("table")`. `_id`/`_creationTime` auto.
 - `ctx.db` in query/mutation only; actions/httpActions use `ctx.runQuery`/`ctx.runMutation`/`ctx.runAction` + `ctx.scheduler.runAfter(ms, internal.file.fn, args)`.
