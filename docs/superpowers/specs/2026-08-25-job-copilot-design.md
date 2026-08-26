@@ -12,7 +12,12 @@
 
 A generic job tracker (Teal/Huntr/Simplify exist) does not win. Three edges, un-copyable because they come from the builder's specific prior work:
 
-1. **Sender verification / anti-phishing (THE headline).** Parse SPF/DKIM/DMARC from AgentMail's raw email. Flag fake recruiters. Never move a card to a high-stakes stage or auto-draft a reply on an unverified sender. No competitor does this; it is a real safety benefit for a hunted user.
+1. **Sender verification / trust signal (THE headline).** Parse SPF/DKIM/DMARC from AgentMail's raw email (VERIFIED 2026-08-25: AgentMail exposes `Authentication-Results` in the message `headers` field; parses cleanly to spf/dkim/dmarc verdicts). No competitor does this; it is a real safety benefit for a hunted user (job seekers are a top phishing target).
+
+   **CRITICAL HONESTY RULE (do not build the naive version):** DMARC failure does NOT mean spoofed. Legitimate recruiting mail routed through ATS platforms (Greenhouse, Lever, Workday, LinkedIn) frequently fails strict DMARC *alignment* against the company's own domain. Flagging a real recruiter as "fake" is a WORSE failure than not checking — it could make a user ignore a genuine opportunity. So:
+   - Two states only: **"verified"** (dmarc=pass, aligned) and **"couldn't verify"** — never "spoofed"/"fake".
+   - Copy is a transparent uncertainty statement with the reason, e.g. "We couldn't verify this sender: DMARC did not align with acme.com. Real recruiters sometimes send via tools that trip this — treat as lower confidence, not fake." NEVER "likely not really Acme."
+   - "Unverified" = *lower confidence*, not *presumed fake*. Same discipline as the Inbin/PSAP review: it proves "verified channel" vs "unverified channel", NOT "safe" vs "attack".
 2. **Firecrawl-grounded interview prep.** Scrape company + role; OpenAI generates real prep and drafts replies citing the company's own site. "Prep, not just track."
 3. **Approve-before-send (responsible AI).** AI drafts; the human approves before AgentMail sends. Rewarded by judges (esp. OpenAI). Also a clean Convex mutation flow.
 
@@ -44,7 +49,8 @@ events           // one row per email = audit trail + what drives stage changes
   userId, applicationId?
   agentmailMsgId   string   // dedup key (idempotent webhook)
   fromAddress, subject, rawText
-  senderVerified   boolean  // parsed from Authentication-Results (dmarc=pass)
+  senderVerified   boolean  // true iff dmarc=pass AND aligned; else false = "couldn't verify"
+  verifyReason     string?   // human-readable why-not, e.g. "DMARC didn't align with acme.com"
   extracted        object?  // OpenAI: {company, role?, stage, eventType, interview_date?, next_action?, sentiment}
   eventType        "confirmation"|"recruiter_reply"|"interview_invite"|"rejection"|"offer"
   createdAt
@@ -79,8 +85,12 @@ recruiter emails name@agentmail.to
   → stage-transition mutation
       · map eventType→stage, FORWARD-ONLY (an old "thanks for applying" can't drag an
         interviewing candidate back)
-      · GATE on senderVerified: an unverified sender may set a low-stakes stage but MUST NOT
-        trigger risky actions (no "offer"/no auto-draft); card shows ⚠ flag
+      · GATE on senderVerified: an unverified sender's email still moves the card and is fully
+        visible, but any RISKY downstream action (auto-drafting a reply, or acting on an "offer"
+        that asks for money/credentials) is gated behind an explicit user acknowledgment, NOT a
+        hard block. The card shows a transparent "couldn't verify (reason)" note, not an
+        accusation. Verified senders skip the acknowledgment. (A hard block would break the
+        product for legit ATS-routed recruiters — see the honesty rule in "Why it wins".)
       · update applications.stage + lastEventAt, link the event
   → live useQuery pushes → board card moves, no refresh   ← THE HERO SHOT
 ```
@@ -95,7 +105,7 @@ Every external call (OpenAI, Firecrawl, AgentMail) is its own action with try/ca
 
 ## UI screens (minimal, demo-focused)
 
-1. **Onboarding** — Convex Auth sign-in; provision AgentMail address; "use this on your job applications."
+1. **Onboarding** — Convex Auth sign-in; provision AgentMail address. **How mail actually reaches it (concrete):** primary path is "use this as your contact email on applications going forward" — applications reply to the address of record, so recruiter replies/confirmations/rejections land natively, no forwarding discipline. Secondary path: forward/BCC an existing thread. Onboarding states this plainly so the user knows the address fills as they apply. For the demo hero shot we send a realistic recruiter email TO the address live (exactly how a real reply arrives).
 2. **The Board** — live pipeline columns (Applied→Screen→Technical→Onsite→Offer, plus Rejected/Ghosted). Cards move on their own. Each shows company, stage, and a **trust badge** (✓ verified / ⚠ unverified). *Hero shot.*
 3. **Application detail** — email thread, Firecrawl'd company prep, the AI-drafted reply with approve/send.
 4. **"How's my search?"** — OpenAI funnel summary + insight.
@@ -105,7 +115,7 @@ Every external call (OpenAI, Firecrawl, AgentMail) is its own action with try/ca
 - 0:00 "Job hunting is chaos — and job seekers are a top phishing target."
 - 0:20 Apply with your copilot's inbox address.
 - 0:40 HERO: send a real recruiter email live → board moves Applied→Interview, no refresh.
-- 1:20 TWIST: send a spoofed "Google recruiter" email → card flags ⚠ "failed authentication, not really Google," refuses to draft a reply. *The winning moment.*
+- 1:20 TWIST: send an unaligned/spoofed "recruiter" email → card shows a transparent "couldn't verify this sender (DMARC didn't align) — treat as lower confidence" note, and any risky action asks for explicit acknowledgment first. *The winning moment: the copilot is honest about what it can and can't prove, instead of blindly trusting email like every other tracker.*
 - 2:00 Firecrawl prep + approve-a-reply.
 - 2:40 "Built on Convex, AgentMail, Firecrawl, OpenAI." Live URL.
 
@@ -138,6 +148,16 @@ SentSignal (`~/Marketing/flightdeck`, FastAPI outreach product) is the reference
 - [ ] X/LinkedIn post tagging @convex @OpenAI @firecrawl @agentmail
 - [ ] Submit repo + live URL + video on vibeapps.dev before Sep 22 12pm PT
 - [ ] Register on Luma (unlocks $20k Firecrawl credits)
+
+## Timeline & MVP cut line
+
+Kickoff Aug 25, submission **Sep 22 12pm PT** (~4 weeks). **Conflict to plan around:** the AI Infra Summit hackathon runs **Sep 15-17**, inside this window, so ~3 usable days are consumed mid-stream. Real build time is closer to 2.5 weeks. Therefore the cut line is explicit, not aspirational:
+
+- **MUST-HAVE (the demo cannot exist without these) — finish by ~Sep 12, before the Summit:**
+  Convex schema + auth · AgentMail inbox + inbound webhook httpAction · OpenAI extraction + Authentication-Results parsing (the trust signal) · forward-only stage mutation · **the live board hero shot** · the verified/couldn't-verify badge. This alone is a complete, winning demo.
+- **STRONG-BUT-CUTTABLE (week 3, after the Summit, cut first if tight):**
+  Firecrawl company enrichment · AI reply drafting + approve/send · "How's my search" summary.
+- **Order enforces this:** build steps 1-5 + 8 (the trust badge) are must-have; 6, 7, 9 are the cuttable tail. If the Summit eats more time than planned, we ship the must-have set and record the video on that; it still ticks every rubric line (all 4 sponsors do real work: Convex live + AgentMail in + OpenAI extract; Firecrawl becomes the one at-risk sponsor, so if week 3 is doomed, do the SMALLEST Firecrawl integration, one company scrape shown on a card, to keep all four represented).
 
 ## Out of scope (YAGNI for the 3 weeks)
 
