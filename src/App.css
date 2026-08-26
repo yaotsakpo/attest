@@ -1330,6 +1330,224 @@ table.data.registry-cols {
   background: var(--warn-bg);
 }
 
+/* ── Policy drawer (right-side) ─────────────────────────────────────────── */
+.drawer-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  background: rgba(6, 8, 12, 0.72);
+  backdrop-filter: blur(3px);
+  animation: fadeIn 160ms ease;
+}
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  z-index: 301;
+  height: 100vh;
+  width: min(560px, 94vw);
+  display: flex;
+  flex-direction: column;
+  background: var(--term-bg);
+  border-left: 1px solid var(--term-border);
+  transform: translateX(100%);
+  transition: transform 220ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.drawer-open {
+  transform: translateX(0);
+}
+.drawer > .term-bar {
+  flex-shrink: 0;
+}
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--space-xl);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
+.drawer-body::-webkit-scrollbar {
+  width: 6px;
+}
+.drawer-body::-webkit-scrollbar-thumb {
+  background: var(--line-strong);
+}
+.drawer-intro {
+  margin: 0;
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+.drawer-empty {
+  border: 1px dashed var(--line-strong);
+  padding: var(--space-xl);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  line-height: 1.6;
+  text-align: center;
+}
+
+.rule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.rule-row {
+  border: 1px solid var(--term-border);
+  background: var(--surface);
+  padding: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.rule-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.rule-num {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  width: 16px;
+  flex-shrink: 0;
+}
+.rule-select,
+.cond-input {
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: var(--t-sm);
+  padding: 5px 8px;
+  border-radius: 0;
+}
+.rule-select {
+  flex: 1;
+  min-width: 0;
+}
+.rule-select:focus,
+.cond-input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* decision segmented control */
+.rule-decision {
+  display: flex;
+  border: 1px solid var(--line-strong);
+}
+.seg {
+  background: transparent;
+  border: none;
+  border-right: 1px solid var(--line-strong);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 5px 9px;
+  cursor: pointer;
+}
+.seg:last-child {
+  border-right: none;
+}
+.seg-on.seg-allow {
+  background: var(--good-bg);
+  color: var(--good);
+}
+.seg-on.seg-hold {
+  background: var(--warn-bg);
+  color: var(--warn);
+}
+.seg-on.seg-deny {
+  background: var(--bad-bg);
+  color: var(--bad);
+}
+
+.rule-reorder {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+.mini {
+  background: transparent;
+  border: 1px solid var(--term-border);
+  color: var(--ink-2);
+  width: 24px;
+  height: 24px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 0;
+  font-size: 12px;
+}
+.mini:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+.mini:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.mini-x:hover {
+  border-color: var(--bad);
+  color: var(--bad);
+}
+
+.rule-conds {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-md);
+  padding-left: 24px;
+}
+.cond {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+}
+.cond > span {
+  white-space: nowrap;
+}
+.cond-input {
+  width: 130px;
+}
+.cond-num {
+  width: 80px;
+}
+.cond-check {
+  gap: 5px;
+  cursor: pointer;
+}
+.cond-check input {
+  accent-color: var(--accent);
+}
+
+.drawer-add {
+  align-self: flex-start;
+}
+.drawer-foot {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  padding: var(--space-md) var(--space-xl);
+  border-top: 1px solid var(--term-border);
+  background: var(--term-bar);
+}
+.drawer-hint {
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  font-family: var(--mono);
+}
+
 @media (prefers-reduced-motion: reduce) {
   * {
     animation: none !important;

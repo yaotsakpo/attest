@@ -7,6 +7,7 @@ import { Vault } from "./Vault";
 import { TrustGraph } from "./TrustGraph";
 import { Activity } from "./Activity";
 import { InboxBadge } from "./InboxBadge";
+import { PolicyPanel } from "./PolicyPanel";
 import "./App.css";
 
 const MIN_PASSWORD = 8;
@@ -79,6 +80,7 @@ function SignIn() {
 function Dashboard() {
   const { signOut } = useAuthActions();
   const [view, setView] = useState<"home" | "vault">("home");
+  const [policyOpen, setPolicyOpen] = useState(false);
 
   return (
     <div className="app">
@@ -101,11 +103,16 @@ function Dashboard() {
           >
             Vault
           </button>
+          <button className="btn btn-ghost" onClick={() => setPolicyOpen(true)}>
+            Policy
+          </button>
           <button className="btn btn-ghost" onClick={() => void signOut()}>
             Sign out
           </button>
         </div>
       </header>
+
+      <PolicyPanel open={policyOpen} onClose={() => setPolicyOpen(false)} />
 
       <main>
         {view === "home" ? (

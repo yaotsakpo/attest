@@ -1,0 +1,308 @@
+import { useEffect, useState } from "react";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "../convex/_generated/api";
+
+// Mirrors convex/lib/policyEngine.ts Rule (kept structural so the panel stays
+// decoupled from generated types; the save mutation validates the shape).
+type RuleAction = "reply" | "payment" | "share_info" | "schedule" | "custom";
+type RuleDecision = "allow" | "hold" | "deny";
+type Grade = "A" | "B" | "C" | "D" | "F";
+type Rule = {
+  id: string;
+  action: RuleAction;
+  customLabel?: string;
+  appliesTo?: string;
+  maxAmount?: number;
+  requireVerified?: boolean;
+  minGrade?: Grade;
+  decision: RuleDecision;
+};
+
+const ACTIONS: { value: RuleAction; label: string }[] = [
+  { value: "reply", label: "Reply / correspond" },
+  { value: "payment", label: "Payment / invoice" },
+  { value: "share_info", label: "Share sensitive info" },
+  { value: "schedule", label: "Schedule / meet" },
+  { value: "custom", label: "Custom…" },
+];
+
+// A tiny stable id without pulling in a dep.
+let seq = 0;
+function newId(): string {
+  seq += 1;
+  return `rule_${seq}_${Date.now().toString(36)}`;
+}
+
+function blankRule(): Rule {
+  return { id: newId(), action: "reply", decision: "hold" };
+}
+
+// The right-side drawer where a user builds the structured ruleset their agent
+// obeys. Free-form to configure, structured to store (no LLM). First-match-wins
+// order matters, so rows can be reordered.
+export function PolicyPanel({
+  open,
+  onClose,
+}: {
+  open: boolean;
+  onClose: () => void;
+}) {
+  const saved = useQuery(api.policy.get);
+  const save = useMutation(api.policy.save);
+  const [rules, setRules] = useState<Rule[]>([]);
+  const [dirty, setDirty] = useState(false);
+  const [savedFlash, setSavedFlash] = useState(false);
+
+  // Hydrate the local editable copy when the server value first arrives (and
+  // whenever we open fresh, if not mid-edit).
+  useEffect(() => {
+    if (saved && !dirty) setRules(saved as Rule[]);
+  }, [saved, dirty]);
+
+  // Esc closes; lock body scroll while open.
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    window.addEventListener("keydown", onKey);
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      window.removeEventListener("keydown", onKey);
+      document.body.style.overflow = prev;
+    };
+  }, [open, onClose]);
+
+  function patch(id: string, next: Partial<Rule>) {
+    setDirty(true);
+    setRules((rs) => rs.map((r) => (r.id === id ? { ...r, ...next } : r)));
+  }
+  function remove(id: string) {
+    setDirty(true);
+    setRules((rs) => rs.filter((r) => r.id !== id));
+  }
+  function move(id: string, dir: -1 | 1) {
+    setDirty(true);
+    setRules((rs) => {
+      const i = rs.findIndex((r) => r.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= rs.length) return rs;
+      const copy = rs.slice();
+      [copy[i], copy[j]] = [copy[j], copy[i]];
+      return copy;
+    });
+  }
+  function add() {
+    setDirty(true);
+    setRules((rs) => [...rs, blankRule()]);
+  }
+
+  async function onSave() {
+    // Strip empties: custom rules must carry a label; numbers coerced.
+    const clean = rules.map((r) => ({
+      ...r,
+      customLabel:
+        r.action === "custom" ? (r.customLabel ?? "").trim() || "custom" : undefined,
+      appliesTo: r.appliesTo?.trim() || undefined,
+    }));
+    await save({ rules: clean });
+    setDirty(false);
+    setSavedFlash(true);
+    setTimeout(() => setSavedFlash(false), 1600);
+  }
+
+  return (
+    <>
+      {open && <div className="drawer-scrim" onClick={onClose} />}
+      <aside className={`drawer ${open ? "drawer-open" : ""}`} aria-hidden={!open}>
+        <div className="term-bar">
+          <span className="term-lights">
+            <span className="term-light tl-r" />
+            <span className="term-light tl-y" />
+            <span className="term-light tl-g" />
+          </span>
+          <span className="term-path">agent@warden ~ policy</span>
+          <button className="term-expand" onClick={onClose}>
+            ✕ close
+          </button>
+        </div>
+
+        <div className="drawer-body">
+          <p className="drawer-intro">
+            Rules your agent follows before it acts for you. Checked top to
+            bottom, first match wins. Anything no rule allows is held for you.
+          </p>
+
+          {rules.length === 0 ? (
+            <div className="drawer-empty">
+              No rules yet. Your agent holds anything it can’t stand behind.
+              <br />
+              Add a rule to let it act on its own inside limits you set.
+            </div>
+          ) : (
+            <ol className="rule-list">
+              {rules.map((r, i) => (
+                <li key={r.id} className="rule-row">
+                  <div className="rule-head">
+                    <span className="rule-num">{i + 1}</span>
+                    <select
+                      className="rule-select"
+                      value={r.action}
+                      onChange={(e) =>
+                        patch(r.id, { action: e.target.value as RuleAction })
+                      }
+                      aria-label="Action"
+                    >
+                      {ACTIONS.map((a) => (
+                        <option key={a.value} value={a.value}>
+                          {a.label}
+                        </option>
+                      ))}
+                    </select>
+
+                    <div className="rule-decision" role="group" aria-label="Decision">
+                      {(["allow", "hold", "deny"] as RuleDecision[]).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          className={`seg seg-${d} ${
+                            r.decision === d ? "seg-on" : ""
+                          }`}
+                          onClick={() => patch(r.id, { decision: d })}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+
+                    <div className="rule-reorder">
+                      <button
+                        className="mini"
+                        onClick={() => move(r.id, -1)}
+                        disabled={i === 0}
+                        aria-label="Move up"
+                      >
+                        ↑
+                      </button>
+                      <button
+                        className="mini"
+                        onClick={() => move(r.id, 1)}
+                        disabled={i === rules.length - 1}
+                        aria-label="Move down"
+                      >
+                        ↓
+                      </button>
+                      <button
+                        className="mini mini-x"
+                        onClick={() => remove(r.id)}
+                        aria-label="Remove rule"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="rule-conds">
+                    {r.action === "custom" && (
+                      <label className="cond">
+                        <span>Label</span>
+                        <input
+                          className="cond-input"
+                          placeholder="e.g. contract_signing"
+                          value={r.customLabel ?? ""}
+                          onChange={(e) =>
+                            patch(r.id, { customLabel: e.target.value })
+                          }
+                        />
+                      </label>
+                    )}
+
+                    {r.action === "payment" && (
+                      <label className="cond">
+                        <span>Max $</span>
+                        <input
+                          className="cond-input cond-num"
+                          type="number"
+                          min={0}
+                          placeholder="500"
+                          value={r.maxAmount ?? ""}
+                          onChange={(e) =>
+                            patch(r.id, {
+                              maxAmount:
+                                e.target.value === ""
+                                  ? undefined
+                                  : Number(e.target.value),
+                            })
+                          }
+                        />
+                      </label>
+                    )}
+
+                    <label className="cond">
+                      <span>Only domain</span>
+                      <input
+                        className="cond-input"
+                        placeholder="any (e.g. acme.com)"
+                        value={r.appliesTo ?? ""}
+                        onChange={(e) => patch(r.id, { appliesTo: e.target.value })}
+                      />
+                    </label>
+
+                    <label className="cond">
+                      <span>Min grade</span>
+                      <select
+                        className="cond-input"
+                        value={r.minGrade ?? ""}
+                        onChange={(e) =>
+                          patch(r.id, {
+                            minGrade: (e.target.value || undefined) as
+                              | Grade
+                              | undefined,
+                          })
+                        }
+                      >
+                        <option value="">any</option>
+                        {(["A", "B", "C", "D"] as Grade[]).map((g) => (
+                          <option key={g} value={g}>
+                            {g}+
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="cond cond-check">
+                      <input
+                        type="checkbox"
+                        checked={r.requireVerified ?? false}
+                        onChange={(e) =>
+                          patch(r.id, { requireVerified: e.target.checked })
+                        }
+                      />
+                      <span>Verified only</span>
+                    </label>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          )}
+
+          <button className="load-more drawer-add" onClick={add}>
+            + Add rule
+          </button>
+        </div>
+
+        <div className="drawer-foot">
+          <span className="drawer-hint">
+            {savedFlash ? "Saved. Your agent uses these now." : dirty ? "Unsaved changes" : " "}
+          </span>
+          <button
+            className="btn btn-primary"
+            onClick={() => void onSave()}
+            disabled={!dirty}
+          >
+            Save policy
+          </button>
+        </div>
+      </aside>
+    </>
+  );
+}
