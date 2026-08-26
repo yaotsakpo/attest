@@ -1,5 +1,6 @@
 import { internalMutation, internalQuery, query } from "./_generated/server";
 import { v } from "convex/values";
+import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
 import { computeTrustScore } from "./lib/trustScore";
 
@@ -55,6 +56,64 @@ export const listDomains = query({
   handler: async (ctx): Promise<Doc<"domains">[]> => {
     const rows = await ctx.db.query("domains").take(500);
     return rows.sort((a, b) => b.trustScore - a.trustScore);
+  },
+});
+
+// The DECISION view for the trust-map: each domain plus the agent's gate story
+// for the signed-in user — did any message from it request sensitive info, and
+// did the agent auto-answer or HOLD it. This is what turns the graph from
+// decoration into "why the agent withheld your SSN". Auth-scoped on the events.
+export type DomainDecision = {
+  domain: string;
+  trustScore: number;
+  verifiedCount: number;
+  unverifiedCount: number;
+  askedSensitive: boolean; // any email from this domain requested sensitive info
+  held: boolean; // agent held (didn't auto-release) at least one message
+  heldSubject: string | null; // the held message subject, for the popover
+  reason: string | null; // the gate's honest reason
+};
+
+export const domainsWithDecisions = query({
+  args: {},
+  handler: async (ctx): Promise<DomainDecision[]> => {
+    const userId = await getAuthUserId(ctx);
+    const domains = await ctx.db.query("domains").take(500);
+
+    // events for this user, to attach the gate story per domain
+    const events = userId
+      ? await ctx.db
+          .query("events")
+          .withIndex("by_user", (q) => q.eq("userId", userId))
+          .take(500)
+      : [];
+
+    const byDomain = new Map<string, typeof events>();
+    for (const e of events) {
+      const d = e.registryDomain ?? "";
+      if (!d) continue;
+      const arr = byDomain.get(d) ?? [];
+      arr.push(e);
+      byDomain.set(d, arr);
+    }
+
+    return domains
+      .map((d) => {
+        const evs = byDomain.get(d.domain) ?? [];
+        const heldEv = evs.find((e) => e.gateAction === "hold_for_approval");
+        const askedSensitive = evs.some((e) => e.sensitiveRequest === true);
+        return {
+          domain: d.domain,
+          trustScore: d.trustScore,
+          verifiedCount: d.verifiedCount,
+          unverifiedCount: d.unverifiedCount,
+          askedSensitive,
+          held: !!heldEv,
+          heldSubject: heldEv?.subject ?? null,
+          reason: heldEv?.gateReason ?? null,
+        };
+      })
+      .sort((a, b) => b.trustScore - a.trustScore);
   },
 });
 

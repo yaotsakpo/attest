@@ -352,6 +352,53 @@ button {
   pointer-events: none;
   opacity: 0.7;
 }
+/* node click → detail popover */
+.node-detail {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  background: rgba(14, 17, 23, 0.95);
+  border: 1px solid var(--term-border);
+  padding: var(--space-md) var(--space-lg);
+  max-width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  animation: fadeIn 140ms ease;
+}
+.node-detail-domain {
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  color: var(--ink);
+  font-weight: 700;
+  word-break: break-all;
+}
+.node-detail-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+.node-detail-line {
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.node-detail-held {
+  border-color: var(--bad);
+}
+.node-detail-verdict {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--bad);
+  font-weight: 700;
+}
+.node-detail-subject {
+  font-size: var(--t-xs);
+  color: var(--ink);
+  background: var(--bad-bg);
+  padding: 4px 8px;
+}
 .graph-empty {
   position: absolute;
   inset: 0;
