@@ -107,15 +107,13 @@ function Dashboard() {
 
       <main>
         {view === "home" ? (
-          <div className="tiles">
-            <div className="tiles-col">
-              <Registry />
-              <Board />
-            </div>
-            <div className="tiles-col">
-              <Activity />
-              <TrustGraph />
-            </div>
+          <div className="grid2">
+            {/* Row 1: registry ‖ agent activity — headers + panels aligned */}
+            <Registry />
+            <Activity />
+            {/* Row 2: conversations ‖ trust map — headers + panels aligned */}
+            <Board />
+            <TrustGraph />
           </div>
         ) : (
           <Vault />

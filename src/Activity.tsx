@@ -48,6 +48,7 @@ export function Activity() {
         </span>
       </div>
 
+      <div className="activity-body">
       {held && held.length > 0 && (
         <div className="held-stack">
           {held.map((e) => (
@@ -154,6 +155,7 @@ export function Activity() {
           </>
         )}
         {status === "LoadingMore" && <div className="load-more muted">Loading…</div>}
+      </div>
       </div>
     </section>
   );

@@ -258,28 +258,83 @@ button {
   align-items: center;
 }
 
-/* --- Tiling layout (two independent columns, each packs tightly) ---
-   Left = your data (registry + pipeline). Right = the agent's activity
-   (held/inbox) + the live trust-map. No forced row alignment, so a short
-   registry doesn't leave dead space beside a tall inbox. */
-.tiles {
+/* --- Aligned 2-column grid ---
+   Every section is a grid cell. Because it's ONE grid (not two independent
+   stacks), the two headers in a row sit on the same line and the two panels
+   start at the same Y. Rows: [registry | activity], [conversations | trustmap].
+   Each cell lays its header + panel in a column so headers align across the
+   row and panels align below them. */
+.grid2 {
   display: grid;
-  grid-template-columns: 1.15fr 1fr;
-  gap: var(--space-xl);
-  align-items: start;
+  grid-template-columns: 1.1fr 1fr;
+  /* fixed row heights → both cells in a row are exactly equal height */
+  grid-template-rows: 520px 460px;
+  gap: var(--space-2xl) var(--space-xl);
+  align-items: stretch;
 }
-.tiles-col {
+.grid2 > .section {
+  margin-bottom: 0;
+  min-width: 0;
+  min-height: 0; /* allow children to scroll within the fixed row height */
   display: flex;
   flex-direction: column;
-  gap: var(--space-2xl);
-  min-width: 0;
 }
-.tiles .section {
+/* section head is fixed height so panels below start at the same Y in a row */
+.grid2 > .section > .section-head {
+  min-height: 64px;
+  flex-shrink: 0;
+  align-content: start;
+}
+/* the panel/board fills the remaining cell height and scrolls internally */
+.grid2 > .section > .term,
+.grid2 > .section > .panel,
+.grid2 > .section > .board,
+.grid2 > .section > .board-empty,
+.grid2 > .section > .activity-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+/* activity cell = held cards (capped) stacked above the inbox term (flexes) */
+.activity-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+.activity-body > .term {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.activity-body .held-stack {
+  flex-shrink: 0;
+  max-height: 220px;
   margin-bottom: 0;
 }
+/* inside the grid, the term titlebar is fixed and the body fills + scrolls */
+.grid2 .term > .term-bar {
+  flex-shrink: 0;
+}
+.grid2 .term > .term-body.table-scroll {
+  flex: 1;
+  max-height: none; /* fill the cell instead of a fixed cap */
+}
+.grid2 .term > .load-more {
+  flex-shrink: 0;
+}
+/* registry term also fills its cell */
+.grid2 > .section > .term {
+  display: flex;
+  flex-direction: column;
+}
 @media (max-width: 900px) {
-  .tiles {
+  .grid2 {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
+  }
+  .grid2 > .section {
+    height: 480px;
   }
 }
 
