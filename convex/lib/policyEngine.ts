@@ -149,6 +149,19 @@ export function classifyRequest(
 // default disclosure gate when no rule matches. `allow` → auto_answer;
 // `hold`/`deny` → hold_for_approval (deny never auto-acts).
 export function decideAction(input: DecideActionInput): GateDecision {
+  // CONTAINMENT GUARANTEE: releasing sensitive PII (SSN, bank, DOB, …) can NEVER
+  // be auto-approved — not by a policy rule, not by any level of trust. A human
+  // always approves sensitive disclosure. This is what bounds a compromised
+  // trusted domain: even a verified, A-grade, explicitly-allowed sender cannot
+  // make the agent hand over sensitive data on its own. Checked BEFORE policy.
+  if (input.sensitiveRequest) {
+    return decideDisclosure({
+      grade: input.grade,
+      senderVerified: input.senderVerified,
+      sensitiveRequest: true,
+    });
+  }
+
   const { action, amount } = classifyRequest(
     input.text,
     input.sensitiveRequest,

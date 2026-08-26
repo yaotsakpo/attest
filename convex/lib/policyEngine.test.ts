@@ -281,9 +281,33 @@ describe("decideAction (policy first, default gate fallback)", () => {
     expect(r.action).toBe("hold_for_approval");
   });
 
-  test("a share_info allow rule never auto-releases without the rule; with it, it can", () => {
-    // Default: sensitive holds.
-    const held = decideAction({
+  test("sensitive info ALWAYS holds — no policy rule can auto-release it", () => {
+    // Even with an explicit 'always allow share_info from acme.com' rule AND a
+    // verified, A-grade sender, a request for sensitive PII must HOLD. This is
+    // the containment guarantee: trust never unlocks releasing your SSN/bank —
+    // so a COMPROMISED trusted domain still can't auto-extract it. A human
+    // always approves sensitive disclosure.
+    const rules = [
+      {
+        id: "s",
+        action: "share_info" as const,
+        appliesTo: "acme.com",
+        requireVerified: true,
+        decision: "allow" as const,
+      },
+    ];
+    const r = decideAction({
+      grade: "A",
+      senderVerified: true,
+      sensitiveRequest: true,
+      domain: "acme.com",
+      text: "Send your bank account number.",
+      rules,
+    });
+    expect(r.action).toBe("hold_for_approval");
+
+    // And of course it holds with no rule too.
+    const noRule = decideAction({
       grade: "A",
       senderVerified: true,
       sensitiveRequest: true,
@@ -291,26 +315,7 @@ describe("decideAction (policy first, default gate fallback)", () => {
       text: "Send your bank account number.",
       rules: [],
     });
-    expect(held.action).toBe("hold_for_approval");
-
-    // With an explicit allow rule scoped to the domain, it may auto-answer.
-    const allowed = decideAction({
-      grade: "A",
-      senderVerified: true,
-      sensitiveRequest: true,
-      domain: "acme.com",
-      text: "Send your bank account number.",
-      rules: [
-        {
-          id: "s",
-          action: "share_info",
-          appliesTo: "acme.com",
-          requireVerified: true,
-          decision: "allow",
-        },
-      ],
-    });
-    expect(allowed.action).toBe("auto_answer");
+    expect(noRule.action).toBe("hold_for_approval");
   });
 
   test("a deny decision holds (never auto-acts) and carries a reason", () => {

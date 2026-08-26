@@ -100,6 +100,10 @@ export const rememberDecision = mutation({
       `${ev.subject}\n${ev.rawText}`,
       ev.sensitiveRequest ?? false,
     );
+    // Sensitive-info release ALWAYS holds and can never be auto-approved, so
+    // there is nothing to "remember" — refuse rather than write an inert rule
+    // that would mislead the user into thinking they enabled auto-release.
+    if (action === "share_info") return null;
 
     const existing = await ctx.db
       .query("policies")
