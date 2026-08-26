@@ -920,10 +920,11 @@ table.data.registry-cols {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: var(--space-sm);
-  /* the whole board scrolls as ONE unit inside its panel; columns size to
-     content (no per-column fixed height fighting the cell height) */
+  /* board scrolls vertically to reach the 2nd row of columns; each column
+     ALSO scrolls its own cards internally (both scroll models coexist) */
   overflow-y: auto;
   align-content: start;
+  padding-right: 2px;
 }
 .board::-webkit-scrollbar {
   width: 6px;
@@ -943,10 +944,10 @@ table.data.registry-cols {
   border: 1px solid var(--term-border);
   border-radius: var(--radius-sm);
   background: var(--term-bg);
-  min-height: 140px; /* uniform floor; grows with content, board scrolls */
-  align-self: start;
+  height: 340px; /* fixed → cards scroll INSIDE each column */
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 }
 .column-title {
   flex-shrink: 0;
@@ -962,21 +963,24 @@ table.data.registry-cols {
   border-bottom: 1px solid var(--term-border);
   background: var(--term-bar);
 }
-/* cards flow naturally; the whole board scrolls, not each column */
+/* the scrollable card area inside each column */
 .column-cards {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: var(--space-sm);
   display: flex;
   flex-direction: column;
   gap: var(--space-sm);
 }
-.column-cards-unused::-webkit-scrollbar {
+.column-cards::-webkit-scrollbar {
   width: 6px;
 }
-.column-cards-unused::-webkit-scrollbar-thumb {
+.column-cards::-webkit-scrollbar-thumb {
   background: var(--line-strong);
   border-radius: 3px;
 }
-.column-cards-unused::-webkit-scrollbar-track {
+.column-cards::-webkit-scrollbar-track {
   background: transparent;
 }
 .card {
