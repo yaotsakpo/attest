@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { paginationOptsValidator } from "convex/server";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
+import { classifyRequest } from "./lib/policyEngine";
 
 export type ActivityItem = {
   _id: Doc<"events">["_id"];
@@ -14,6 +15,11 @@ export type ActivityItem = {
   gateAction: "auto_answer" | "hold_for_approval" | null;
   gateReason: string | null;
   gateResolved: "approved" | "dismissed" | null;
+  registryDomain: string | null; // the domain the sender authenticated as
+  // Pre-derived for the decision trace (so the raw email body never leaves the
+  // server). The requested action classified the SAME way the gate classified it.
+  requestedAction: string;
+  requestedAmount: number | null;
   createdAt: number;
 };
 
@@ -30,10 +36,19 @@ const activityItem = v.object({
   ),
   gateReason: v.union(v.string(), v.null()),
   gateResolved: v.union(v.literal("approved"), v.literal("dismissed"), v.null()),
+  registryDomain: v.union(v.string(), v.null()),
+  requestedAction: v.string(),
+  requestedAmount: v.union(v.number(), v.null()),
   createdAt: v.number(),
 });
 
 function toItem(e: Doc<"events">): ActivityItem {
+  // Classify the request the SAME way the gate did — deterministic, no LLM — so
+  // the trace shows exactly what drove the decision, without shipping the body.
+  const { action, amount } = classifyRequest(
+    `${e.subject}\n${e.rawText}`,
+    e.sensitiveRequest ?? false,
+  );
   return {
     _id: e._id,
     fromAddress: e.fromAddress,
@@ -43,6 +58,9 @@ function toItem(e: Doc<"events">): ActivityItem {
     gateAction: e.gateAction ?? null,
     gateReason: e.gateReason ?? null,
     gateResolved: e.gateResolved ?? null,
+    registryDomain: e.registryDomain ?? null,
+    requestedAction: action,
+    requestedAmount: amount ?? null,
     createdAt: e._creationTime,
   };
 }

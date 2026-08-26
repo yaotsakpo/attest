@@ -1,9 +1,11 @@
-import { useCallback, useState } from "react";
+import { Fragment, useCallback, useState } from "react";
 import { usePaginatedQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
+import type { Id } from "../convex/_generated/dataModel";
 import { useInfiniteScroll } from "./useInfiniteScroll";
 import { ExpandablePanel } from "./ExpandablePanel";
 import { SkeletonRows } from "./SkeletonRows";
+import { DecisionTrace } from "./DecisionTrace";
 import { domainOf } from "./activityShared";
 
 // The full handled history — every decision the agent made, PAGINATED and
@@ -17,6 +19,7 @@ export function ActivityLog() {
   } = usePaginatedQuery(api.activity.log, {}, { initialNumItems: 25 });
   const [q, setQ] = useState("");
   const [expanded, setExpanded] = useState(false);
+  const [traceId, setTraceId] = useState<Id<"events"> | null>(null);
 
   const term = q.trim().toLowerCase();
   const filtered = term
@@ -98,29 +101,42 @@ export function ActivityLog() {
                       : e.gateResolved === "dismissed"
                         ? "you dismissed"
                         : "awaiting you";
+                  const open = traceId === e._id;
                   return (
-                    <tr key={e._id}>
-                      <td>
-                        {auto ? (
-                          <span className="gate gate-auto">auto-answered</span>
-                        ) : (
-                          <span className="decision-pair">
-                            <span className="gate gate-hold">held</span>
-                            {resolvedBadge && (
-                              <>
-                                <span className="decision-arrow">→</span>
-                                <span className={`gate ${resolvedBadge.cls}`}>
-                                  {resolvedBadge.label}
-                                </span>
-                              </>
-                            )}
-                          </span>
-                        )}
-                      </td>
-                      <td className="m">{domainOf(e.fromAddress)}</td>
-                      <td>{e.subject || "(no subject)"}</td>
-                      <td className="num dim">{status}</td>
-                    </tr>
+                    <Fragment key={e._id}>
+                      <tr
+                        className="log-row"
+                        onClick={() => setTraceId(open ? null : e._id)}
+                      >
+                        <td>
+                          {auto ? (
+                            <span className="gate gate-auto">auto-answered</span>
+                          ) : (
+                            <span className="decision-pair">
+                              <span className="gate gate-hold">held</span>
+                              {resolvedBadge && (
+                                <>
+                                  <span className="decision-arrow">→</span>
+                                  <span className={`gate ${resolvedBadge.cls}`}>
+                                    {resolvedBadge.label}
+                                  </span>
+                                </>
+                              )}
+                            </span>
+                          )}
+                        </td>
+                        <td className="m">{domainOf(e.fromAddress)}</td>
+                        <td>{e.subject || "(no subject)"}</td>
+                        <td className="num dim">{status}</td>
+                      </tr>
+                      {open && (
+                        <tr className="log-trace-row">
+                          <td colSpan={4}>
+                            <DecisionTrace ev={e} />
+                          </td>
+                        </tr>
+                      )}
+                    </Fragment>
                   );
                 })
               )}

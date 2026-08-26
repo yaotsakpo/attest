@@ -112,7 +112,11 @@ test("log paginates: page shape, page size, and continueCursor", async () => {
   // Each item is the projected ActivityItem shape, not a raw event.
   expect(page1.page[0]).toHaveProperty("gateAction");
   expect(page1.page[0]).toHaveProperty("createdAt");
+  // The raw email body NEVER leaves the server — the trace uses server-derived
+  // classification instead.
   expect(page1.page[0]).not.toHaveProperty("rawText");
+  expect(page1.page[0]).toHaveProperty("requestedAction");
+  expect(page1.page[0]).toHaveProperty("requestedAmount");
 
   // Follow the cursor to the next page.
   const page2 = await asUser(t, userId).query(api.activity.log, {

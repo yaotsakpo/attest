@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { ExpandablePanel } from "./ExpandablePanel";
+import { DecisionTrace } from "./DecisionTrace";
 import { domainOf } from "./activityShared";
 
 // "Needs you" — the live action surface. Items the agent HELD because it couldn't
@@ -34,6 +35,7 @@ export function NeedsYou() {
     domain: string;
   } | null>(null);
   const [remembered, setRemembered] = useState(false);
+  const [traceId, setTraceId] = useState<Id<"events"> | null>(null);
 
   function approve(e: { _id: Id<"events">; fromAddress: string }) {
     void resolve({ id: e._id, decision: "approved" });
@@ -126,6 +128,15 @@ export function NeedsYou() {
                     {e.subject || "(no subject)"}
                   </div>
                   <div className="held-reason">{e.gateReason}</div>
+                  <button
+                    className="trace-toggle"
+                    onClick={() =>
+                      setTraceId(traceId === e._id ? null : e._id)
+                    }
+                  >
+                    {traceId === e._id ? "▾ hide reasoning" : "▸ why?"}
+                  </button>
+                  {traceId === e._id && <DecisionTrace ev={e} />}
                 </div>
                 <div className="held-actions">
                   <button className="btn btn-primary" onClick={() => approve(e)}>

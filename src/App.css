@@ -1783,3 +1783,65 @@ table.data.registry-cols {
 }
 .vault-edit-value { display: flex; gap: var(--space-sm); align-items: center; }
 .vault-edit-value .vault-inline { flex: 1; }
+
+/* ── Decision trace (the protocol, made visible) ────────────────────────── */
+.trace-toggle {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  padding: 4px 0 0;
+  cursor: pointer;
+}
+.trace-toggle:hover { color: var(--good); }
+.trace {
+  margin-top: var(--space-sm);
+  border-left: 2px solid var(--term-border);
+  padding-left: var(--space-md);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.trace-step {
+  display: grid;
+  grid-template-columns: 64px 1fr;
+  gap: var(--space-sm);
+  align-items: baseline;
+}
+.trace-k {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+}
+.trace-v {
+  font-size: var(--t-xs);
+  color: var(--ink-2);
+  line-height: 1.5;
+}
+.trace-v b { color: var(--ink); font-weight: 600; }
+.trace-warn { color: var(--warn) !important; }
+.trace-verdict {
+  font-family: var(--mono);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 1px 7px;
+  border: 1px solid currentColor;
+  margin-right: var(--space-sm);
+}
+.trace-verdict.is-held { color: var(--warn); background: var(--warn-bg); }
+.trace-verdict.is-auto { color: var(--good); background: var(--good-bg); }
+.trace-det {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  letter-spacing: 0.04em;
+}
+
+/* log row → click to reveal its decision trace */
+.log-row { cursor: pointer; }
+.log-row:hover { background: var(--surface); }
+.log-trace-row > td { padding: var(--space-sm) var(--space-md) var(--space-md); background: var(--term-bg); }
