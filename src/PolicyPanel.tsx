@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useQuery, useMutation, useAction } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { Drawer } from "./Drawer";
+import { Loading } from "./Loading";
 
 // Mirrors convex/lib/policyEngine.ts Rule (kept structural so the panel stays
 // decoupled from generated types; the save mutation validates the shape).
@@ -321,7 +322,7 @@ function AgentConnection() {
       </div>
 
       {inbox === undefined ? (
-        <span className="agent-conn-addr dim">Loading…</span>
+        <Loading />
       ) : inbox ? (
         <>
           <div className="agent-conn-addr">

@@ -1939,3 +1939,24 @@ table.data.registry-cols {
   padding: var(--space-sm) var(--space-md);
   margin-bottom: var(--space-md);
 }
+
+/* unified loading indicator (non-table surfaces) */
+.loading {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  color: var(--ink-3);
+  font-size: var(--t-sm);
+  padding: var(--space-xl) var(--space-md);
+}
+.loading-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--accent);
+  animation: loadingPulse 1s ease-in-out infinite;
+}
+@keyframes loadingPulse {
+  0%, 100% { opacity: 0.3; }
+  50% { opacity: 1; }
+}

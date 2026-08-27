@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "../convex/_generated/api";
 import type { Doc } from "../convex/_generated/dataModel";
 import { Drawer } from "./Drawer";
+import { Loading } from "./Loading";
 
 // The vault, in its OWN right-side drawer. When open it shows only the vault —
 // what the agent knows about you and may share on your behalf. You mark which
@@ -102,7 +103,7 @@ export function VaultDrawer({
       {err && <div className="drawer-err">{err}</div>}
 
       {rows === undefined ? (
-        <div className="drawer-empty">Loading…</div>
+        <Loading />
       ) : rows.length === 0 ? (
         <div className="drawer-empty">
           Nothing yet. Add anything your agent might share on your behalf —

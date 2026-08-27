@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { gradeFor } from "./grade";
@@ -28,7 +28,13 @@ export function Registry() {
   const [q, setQ] = useState("");
   const [shown, setShown] = useState(PAGE);
   const [expanded, setExpanded] = useState(false);
-  const now = Date.now();
+  // Tick every 30s so relative "last seen" times stay live instead of freezing
+  // at whatever the last render happened to be.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(id);
+  }, []);
 
   function th(key: SortKey, label: string, extra = "") {
     const active = sort === key;

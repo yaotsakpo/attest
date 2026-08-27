@@ -4,6 +4,7 @@ import { api } from "../convex/_generated/api";
 import type { Id } from "../convex/_generated/dataModel";
 import { ExpandablePanel } from "./ExpandablePanel";
 import { DecisionTrace } from "./DecisionTrace";
+import { Loading } from "./Loading";
 import { domainOf } from "./activityShared";
 
 // "Needs you" — the live action surface. Items the agent HELD because it couldn't
@@ -111,7 +112,7 @@ export function NeedsYou() {
         )}
 
         {held === undefined ? (
-          <div className="needs-empty">Loading…</div>
+          <Loading />
         ) : count === 0 && !justApproved ? (
           <div className="needs-empty">
             Nothing needs you right now. The agent is handling verified
