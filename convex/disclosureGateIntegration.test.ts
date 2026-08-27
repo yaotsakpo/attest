@@ -268,7 +268,7 @@ test("continuity: in-network first contact seeds; later message without proof ->
       .withIndex("by_counterpart", (q) => q.eq("counterpart", peerDomain))
       .collect(),
   );
-  expect(repEvents.some((e) => e.kind === "takeover_suspected")).toBe(false);
+  expect(repEvents.some((e) => e.kind === "takeover_proven")).toBe(false);
 });
 
 // The crypto is what gates, not marker-presence. A seeded peer that sends the
@@ -348,5 +348,5 @@ test("continuity crypto: real token confirms, forged token = takeover", async ()
       .withIndex("by_counterpart", (q) => q.eq("counterpart", "agentmail.to"))
       .collect(),
   );
-  expect(rep.some((e) => e.kind === "takeover_suspected")).toBe(true);
+  expect(rep.some((e) => e.kind === "takeover_proven")).toBe(true);
 });

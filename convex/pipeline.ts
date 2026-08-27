@@ -163,9 +163,11 @@ export const applyExtraction = internalMutation({
             at: Date.now(),
           });
         } else if (verdict.status === "takeover_suspected" && verdict.provable) {
+          // The local verdict is "suspected", but it only reaches this branch
+          // when provable, so the PERSISTED, network-propagated kind is proof.
           await ctx.db.insert("reputationEvents", {
             counterpart: domain,
-            kind: "takeover_suspected",
+            kind: "takeover_proven",
             userId: ev.userId,
             at: Date.now(),
           });
@@ -185,7 +187,7 @@ export const applyExtraction = internalMutation({
     // omission is never persisted network-wide, so it enters only as the
     // querier's local view (a_Z of §5.1). Then fold from this user's viewpoint.
     const classified: ClassifiedEvent[] = repEvents.map((e) => ({
-      kind: e.kind === "takeover_suspected" ? "takeover_proven" : "continuity_confirmed",
+      kind: e.kind, // stored kinds already match the classified vocabulary
       class: "commission",
       transferable: true,
       observer: e.userId,

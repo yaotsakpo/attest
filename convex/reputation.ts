@@ -29,10 +29,7 @@ export const forDomain = query({
       .withIndex("by_counterpart", (q) => q.eq("counterpart", args.domain))
       .take(500);
     const classified: ClassifiedEvent[] = events.map((e) => ({
-      kind:
-        e.kind === "takeover_suspected"
-          ? "takeover_proven"
-          : "continuity_confirmed",
+      kind: e.kind, // stored kinds already match the classified vocabulary
       class: "commission",
       transferable: true,
       observer: e.userId,

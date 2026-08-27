@@ -173,7 +173,7 @@ export default defineSchema({
     counterpart: v.string(), // the domain the event is about
     kind: v.union(
       v.literal("continuity_confirmed"),
-      v.literal("takeover_suspected"),
+      v.literal("takeover_proven"), // persisted ONLY when verdict.provable — it is proof, not suspicion
     ),
     userId: v.id("users"), // who observed it (provenance of the observation)
     at: v.number(),
