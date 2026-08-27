@@ -1,18 +1,21 @@
 import { query } from "./_generated/server";
 import { v } from "convex/values";
-import { aggregateReputation } from "./lib/reputation";
+import { aggregateClassified, type ClassifiedEvent } from "./lib/reputationClass";
 
 // The network-wide reputation standing for a counterpart domain, derived from
-// attestable events (continuity confirmations / suspected takeovers). Public:
-// reputation is a collective signal, and it's built only on checkable facts, not
-// claims — so exposing the standing leaks nothing a peer couldn't attest itself.
+// attestable events (continuity confirmations / proven takeovers). Public:
+// reputation is a collective signal built only on checkable facts, not claims —
+// so exposing the standing leaks nothing a peer couldn't attest itself. This is
+// the NETWORK view: no querier-local omission (a_Z) enters, so it never shows
+// `suspected` — that state is local to a specific agent's own channel.
 export const forDomain = query({
   args: { domain: v.string() },
   returns: v.object({
     confirmed: v.number(),
-    takeovers: v.number(),
-    localAbsent: v.number(),
-    flagged: v.boolean(),
+    proven: v.number(),
+    absent: v.number(),
+    networkWide: v.boolean(),
+    localSuspicion: v.boolean(),
     standing: v.union(
       v.literal("unknown"),
       v.literal("suspected"),
@@ -25,11 +28,18 @@ export const forDomain = query({
       .query("reputationEvents")
       .withIndex("by_counterpart", (q) => q.eq("counterpart", args.domain))
       .take(500);
-    // This is the NETWORK standing — the portable, a_Z-independent view. Local
-    // suspicion (a_Z) is per-querier and never network-wide, so it's 0 here by
-    // design; the graph panel shows collective reputation, not local friction.
-    return aggregateReputation(
-      events.map((e) => ({ kind: e.kind, at: e.at })),
-    );
+    const classified: ClassifiedEvent[] = events.map((e) => ({
+      kind:
+        e.kind === "takeover_suspected"
+          ? "takeover_proven"
+          : "continuity_confirmed",
+      class: "commission",
+      transferable: true,
+      observer: e.userId,
+      at: e.at,
+    }));
+    // `self` is the network viewpoint here (a sentinel that never matches an
+    // observer), so no omission is self-scoped and `suspected` cannot arise.
+    return aggregateClassified(classified, { self: "__network__" });
   },
 });

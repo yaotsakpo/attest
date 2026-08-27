@@ -8,7 +8,7 @@ import { detectSensitiveRequest } from "./lib/disclosureGate";
 import { decideAction } from "./lib/policyEngine";
 import { tierFor } from "./lib/membership";
 import { continuityVerdict } from "./lib/continuityState";
-import { aggregateReputation } from "./lib/reputation";
+import { aggregateClassified, type ClassifiedEvent } from "./lib/reputationClass";
 import { deriveSeed } from "./lib/continuity";
 import { readToken } from "./lib/continuityToken";
 import { acceptStep, type ReplayWindow } from "./lib/replayWindow";
@@ -180,10 +180,28 @@ export const applyExtraction = internalMutation({
       .query("reputationEvents")
       .withIndex("by_counterpart", (q) => q.eq("counterpart", domain))
       .take(500);
-    const reputation = aggregateReputation(
-      repEvents.map((e) => ({ kind: e.kind, at: e.at })),
-      localAbsent,
-    );
+    // Map stored (commission-class) events into the classified shape, and add
+    // THIS user's own omission (if any) as a self-observed `proof_absent` — an
+    // omission is never persisted network-wide, so it enters only as the
+    // querier's local view (a_Z of §5.1). Then fold from this user's viewpoint.
+    const classified: ClassifiedEvent[] = repEvents.map((e) => ({
+      kind: e.kind === "takeover_suspected" ? "takeover_proven" : "continuity_confirmed",
+      class: "commission",
+      transferable: true,
+      observer: e.userId,
+      at: e.at,
+    }));
+    if (localAbsent > 0) {
+      classified.push({
+        kind: "proof_absent",
+        class: "omission",
+        transferable: false,
+        observer: ev.userId,
+        at: Date.now(),
+      });
+    }
+    const reputation = aggregateClassified(classified, { self: ev.userId });
+    const reputationCompromised = reputation.standing === "compromised";
 
     const decision = decideAction({
       grade,
@@ -194,7 +212,7 @@ export const applyExtraction = internalMutation({
       rules: policy?.rules ?? [],
       tier,
       continuityHold,
-      reputationFlagged: reputation.flagged,
+      reputationFlagged: reputationCompromised,
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
@@ -210,7 +228,7 @@ export const applyExtraction = internalMutation({
       isMember &&
       decision.action === "auto_answer" &&
       !continuityHold &&
-      !reputation.flagged
+      !reputationCompromised
     ) {
       const already = await ctx.db
         .query("continuity")

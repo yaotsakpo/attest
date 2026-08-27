@@ -514,8 +514,8 @@ function NodeReputation({ domain }: { domain: string }) {
       <span className="node-rep-dot" />
       {rep.standing === "compromised" ? (
         <span>
-          flagged — {rep.takeovers} suspected takeover
-          {rep.takeovers === 1 ? "" : "s"} across the network
+          flagged — {rep.proven} proven takeover
+          {rep.proven === 1 ? "" : "s"} across the network
         </span>
       ) : (
         <span>continuity confirmed {rep.confirmed}× · good standing</span>
