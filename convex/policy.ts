@@ -1,4 +1,5 @@
 import { mutation, query } from "./_generated/server";
+import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { classifyRequest, type Rule, type RuleAction } from "./lib/policyEngine";
@@ -76,6 +77,12 @@ export const save = mutation({
         updatedAt: now,
       });
     }
+    // Governance changed → commit a new version to the chain (no-ops if the
+    // rules are actually unchanged). Scheduled because the commit needs a random
+    // nonce, which a deterministic mutation can't generate.
+    await ctx.scheduler.runAfter(0, internal.policyCommit.commitOnSave, {
+      userId,
+    });
     return null;
   },
 });
@@ -152,6 +159,10 @@ export const rememberDecision = mutation({
     } else {
       await ctx.db.insert("policies", { userId, rules: next, updatedAt: now });
     }
+    // Remembering a decision changes governance → commit a new version.
+    await ctx.scheduler.runAfter(0, internal.policyCommit.commitOnSave, {
+      userId,
+    });
     return null;
   },
 });

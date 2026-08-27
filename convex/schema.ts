@@ -219,6 +219,25 @@ export default defineSchema({
     updatedAt: v.number(),
   }).index("by_user", ["userId"]),
 
+  // POLICY COMMITMENTS — the version-chained governance record. Each row commits
+  // to a ruleset via H(canonical(rules) | nonce | prev) WITHOUT revealing the
+  // rules (see convex/lib/policyCommitment.ts). The chain lets a counterpart
+  // check that an agent's governance is unchanged, and makes a change a visible
+  // event — an attacker who takes over a mailbox must either act inside rules it
+  // can't see, or bump the version right before an unusual request. The `nonce`
+  // is stored so the agent can later prove a specific ruleset matches a commit;
+  // it must never be reused across versions.
+  policyCommitments: defineTable({
+    userId: v.id("users"),
+    version: v.number(),
+    commit: v.string(),
+    nonce: v.string(),
+    prev: v.union(v.string(), v.null()),
+    at: v.number(),
+  })
+    .index("by_user", ["userId"])
+    .index("by_user_and_version", ["userId", "version"]),
+
   // AI-drafted replies awaiting human approval (approve-before-send).
   drafts: defineTable({
     userId: v.id("users"),
