@@ -12,34 +12,40 @@ import { VaultDrawer } from "./VaultDrawer";
 import { ContinuityDrawer } from "./ContinuityDrawer";
 import "./App.css";
 
-const MIN_PASSWORD = 8;
-
 function SignIn() {
   const { signIn } = useAuthActions();
-  const [flow, setFlow] = useState<"signIn" | "signUp">("signUp");
+  // Passwordless: enter email → get an 8-digit code → enter it. No password to
+  // set, forget, or reset. Two steps, tracked by `sent`.
+  const [step, setStep] = useState<"email" | "code">("email");
+  const [email, setEmail] = useState("");
+  const [code, setCode] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+  async function sendCode(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (submitting) return;
     setError(null);
-    const form = new FormData(e.currentTarget);
-    const email = String(form.get("email"));
-    const password = String(form.get("password"));
-    if (password.length < MIN_PASSWORD) {
-      setError(`Password must be at least ${MIN_PASSWORD} characters.`);
-      return;
-    }
     setSubmitting(true);
     try {
-      await signIn("password", { email, password, flow });
-    } catch (err) {
-      const msg = err instanceof Error ? err.message : "";
-      if (/invalid password/i.test(msg))
-        setError(`Password must be at least ${MIN_PASSWORD} characters.`);
-      else if (flow === "signIn") setError("Wrong email or password.");
-      else
-        setError("Couldn’t create your account. That email may already be in use.");
+      await signIn("email-code", { email });
+      setStep("code");
+    } catch {
+      setError("Couldn’t send a code to that address. Check it and try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function verifyCode(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (submitting) return;
+    setError(null);
+    setSubmitting(true);
+    try {
+      await signIn("email-code", { email, code });
+    } catch {
+      setError("That code didn’t match, or it expired. Request a new one.");
     } finally {
       setSubmitting(false);
     }
@@ -47,34 +53,74 @@ function SignIn() {
 
   return (
     <div className="auth-wrap">
-      <form className="auth-card" onSubmit={onSubmit}>
-        <h1 className="auth-title">Attest</h1>
-        <p className="auth-sub">
-          Your agent talks to other agents and people over email, and never hands
-          your info to a counterpart it can’t verify.
-        </p>
-        <input name="email" type="email" placeholder="you@email.com" required />
-        <input
-          name="password"
-          type="password"
-          placeholder={`password (min ${MIN_PASSWORD} characters)`}
-          minLength={MIN_PASSWORD}
-          required
-        />
-        <button type="submit" className="btn btn-primary" disabled={submitting}>
-          {submitting ? "…" : flow === "signUp" ? "Create account" : "Sign in"}
-        </button>
-        {error && <p className="auth-error">{error}</p>}
-        <button
-          type="button"
-          className="link"
-          onClick={() => setFlow(flow === "signUp" ? "signIn" : "signUp")}
-        >
-          {flow === "signUp"
-            ? "Already have an account? Sign in"
-            : "New here? Create an account"}
-        </button>
-      </form>
+      {step === "email" ? (
+        <form className="auth-card" onSubmit={sendCode}>
+          <h1 className="auth-title">Attest</h1>
+          <p className="auth-sub">
+            Your agent talks to other agents and people over email, and never
+            hands your info to a counterpart it can’t verify.
+          </p>
+          <input
+            name="email"
+            type="email"
+            placeholder="you@email.com"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
+            autoFocus
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={submitting || !email}
+          >
+            {submitting ? "Sending…" : "Email me a sign-in code"}
+          </button>
+          {error && <p className="auth-error">{error}</p>}
+          <p className="auth-sub" style={{ margin: 0 }}>
+            No password. We send a one-time code to your email.
+          </p>
+        </form>
+      ) : (
+        <form className="auth-card" onSubmit={verifyCode}>
+          <h1 className="auth-title">Check your email</h1>
+          <p className="auth-sub">
+            We sent an 8-digit code to <b>{email}</b>. Enter it to sign in.
+          </p>
+          <input
+            name="code"
+            inputMode="numeric"
+            autoComplete="one-time-code"
+            placeholder="00000000"
+            value={code}
+            onChange={(e) =>
+              setCode(e.target.value.replace(/\D/g, "").slice(0, 8))
+            }
+            className="mono"
+            required
+            autoFocus
+          />
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={submitting || code.length < 8}
+          >
+            {submitting ? "Verifying…" : "Sign in"}
+          </button>
+          {error && <p className="auth-error">{error}</p>}
+          <button
+            type="button"
+            className="link"
+            onClick={() => {
+              setStep("email");
+              setCode("");
+              setError(null);
+            }}
+          >
+            Use a different email
+          </button>
+        </form>
+      )}
     </div>
   );
 }
