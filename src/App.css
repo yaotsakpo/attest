@@ -1960,3 +1960,35 @@ table.data.registry-cols {
   0%, 100% { opacity: 0.3; }
   50% { opacity: 1; }
 }
+
+/* governance commitment status in the policy drawer */
+.gov-panel {
+  border: 1px solid var(--term-border);
+  background: var(--surface);
+  padding: var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.gov-k {
+  font-family: var(--mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--ink-3);
+  display: block;
+  margin-bottom: 4px;
+}
+.gov-v {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  font-size: var(--t-sm);
+  color: var(--good);
+  font-family: var(--mono);
+}
+.gov-fp { color: var(--ink-3); font-size: var(--t-xs); }
+.gov-hint {
+  margin: var(--space-sm) 0 0;
+  color: var(--ink-3);
+  font-size: var(--t-xs);
+  line-height: 1.6;
+}

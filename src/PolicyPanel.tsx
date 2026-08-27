@@ -102,6 +102,7 @@ export function PolicyPanel({
   return (
     <Drawer open={open} onClose={onClose} path="agent@attest ~ policy">
           <AgentConnection />
+          <GovernancePanel />
 
           <p className="drawer-intro">
             Rules your agent follows before it acts for you. Checked top to
@@ -354,6 +355,33 @@ function AgentConnection() {
       )}
 
       {note && <div className="agent-conn-note">{note}</div>}
+    </div>
+  );
+}
+
+// The governance commitment status — makes the policy-commitment mechanism
+// VISIBLE: the current committed version + a short fingerprint. A counterpart
+// can be shown this to confirm governance is intact; a version bump right before
+// an unusual request is the takeover tell. The RULES are never shown, only that
+// they're committed and at which version.
+function GovernancePanel() {
+  const chain = useQuery(api.policyCommit.chain);
+  if (!chain || chain.length === 0) return null;
+  const latest = chain[chain.length - 1];
+  return (
+    <div className="gov-panel">
+      <span className="gov-k">governance</span>
+      <span className="gov-v">
+        committed · v{latest.version}
+        <span className="gov-fp mono" title="commitment fingerprint">
+          {latest.commit.slice(0, 12)}
+        </span>
+      </span>
+      <p className="gov-hint">
+        Your policy is committed, not published — a counterpart can verify it
+        hasn’t silently changed without seeing a single rule. A version bump is a
+        visible event.
+      </p>
     </div>
   );
 }
