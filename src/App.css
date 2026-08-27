@@ -193,6 +193,24 @@ button {
   font-weight: 600;
   letter-spacing: -0.01em;
 }
+.auth-logo-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  align-self: flex-start;
+  margin-bottom: var(--space-xs);
+}
+.auth-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.3));
+  transition: filter 160ms ease;
+}
+.auth-logo-btn:hover .auth-logo {
+  filter: drop-shadow(0 0 12px rgba(52, 211, 153, 0.55));
+}
 .auth-sub {
   margin: 0 0 var(--space-sm);
   color: var(--ink-2);
@@ -215,6 +233,18 @@ button {
   color: var(--bad);
   font-size: var(--t-sm);
   margin: 0;
+}
+.auth-back {
+  align-self: flex-start;
+  margin-top: var(--space-sm);
+  color: var(--ink-3);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.auth-back:hover {
+  color: var(--accent);
 }
 
 /* --- App shell — full width, edge-to-edge like a terminal --- */

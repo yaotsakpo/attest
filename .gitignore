@@ -33,3 +33,4 @@ docs/superpowers/
 # the public repo cites them, it does not contain the drafts or the measurements.
 papers/
 experiments/
+.vercel

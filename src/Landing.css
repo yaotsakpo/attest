@@ -1,0 +1,1072 @@
+/* Attest landing — terminal editorial.
+   A technical document rendered in a terminal, not a SaaS splash. Left-aligned
+   measure, monospace labels and rule-lines, hairline dividers, numbered
+   sections, generous vertical rhythm. Emerald is rationed: verdicts and one
+   signature motif only. Reuses the app's tokens from App.css. */
+
+.lp {
+  --lp-measure: 68ch;
+  --lp-gutter: clamp(20px, 6vw, 96px);
+  --lp-rule: var(--line);
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  min-height: 100vh;
+  position: relative;
+  /* clip (not hidden) contains any horizontal bleed without creating a scroll
+     container. Aurora is position:absolute now, so clipping is safe. */
+  overflow-x: clip;
+}
+
+/* faint terminal grid + top vignette, very low contrast */
+.lp::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(
+      120% 60% at 70% -10%,
+      rgba(52, 211, 153, 0.06),
+      transparent 60%
+    ),
+    linear-gradient(transparent 0 31px, var(--line) 31px 32px);
+  background-size:
+    auto,
+    100% 32px;
+  opacity: 0.5;
+  mask-image: linear-gradient(180deg, #000 0, transparent 70%);
+  z-index: 0;
+}
+.lp > * {
+  position: relative;
+  z-index: 1;
+}
+/* aurora is the atmospheric backdrop — stays behind all content */
+.lp > .lp-aurora {
+  z-index: 0;
+}
+
+/* --- nav --- */
+.lp-nav {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  border-bottom: 1px solid transparent;
+  transition:
+    background 160ms ease,
+    border-color 160ms ease;
+}
+.lp-nav.is-scrolled {
+  background: rgba(11, 13, 18, 0.82);
+  backdrop-filter: blur(8px);
+  border-bottom-color: var(--lp-rule);
+}
+.lp-nav-inner {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 16px var(--lp-gutter);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.lp-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.lp-logo-img {
+  height: 20px;
+  width: auto;
+  display: block;
+  filter: drop-shadow(0 0 8px rgba(52, 211, 153, 0.35));
+}
+.lp-footer .lp-logo-img {
+  height: 24px;
+}
+.lp-nav-links {
+  display: flex;
+  align-items: center;
+  gap: clamp(14px, 3vw, 32px);
+}
+.lp-nav-links a {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.lp-nav-links a:hover {
+  color: var(--ink);
+}
+.lp-nav-cta {
+  height: 32px;
+}
+@media (max-width: 560px) {
+  .lp-nav-links a {
+    display: none;
+  }
+}
+
+/* --- hero: full-bleed sphere backdrop, centered copy on top --- */
+.lp-hero {
+  position: relative;
+  min-height: min(96vh, 900px);
+  margin-top: -64px; /* pull hero up so it starts behind the sticky nav */
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: clamp(120px, 16vh, 190px) var(--lp-gutter) clamp(56px, 9vw, 104px);
+  overflow-x: clip; /* contain horizontal bleed, let sphere show above the top */
+}
+.lp-hero-copy {
+  position: relative;
+  z-index: 2;
+  max-width: 780px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+/* vignette so copy stays legible over the graph */
+.lp-hero::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 50% at 50% 46%,
+    rgba(11, 13, 18, 0.86) 0,
+    rgba(11, 13, 18, 0.5) 42%,
+    transparent 72%
+  );
+}
+.lp-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-2);
+  padding-bottom: 20px;
+}
+.lp-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 8px var(--accent);
+  animation: lp-pulse 2.6s ease-in-out infinite;
+}
+@keyframes lp-pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.35;
+  }
+}
+.lp-h1 {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(1.7rem, 4.2vw, 3rem);
+  line-height: 1.08;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.lp-h1-accent {
+  color: var(--accent);
+}
+.lp-lede {
+  margin: 22px auto 0;
+  max-width: 56ch;
+  color: var(--ink-2);
+  font-size: clamp(0.95rem, 1.4vw, 1.05rem);
+  line-height: 1.65;
+}
+.lp-cta-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 22px;
+  margin-top: 32px;
+  flex-wrap: wrap;
+}
+.lp-cta-primary {
+  height: 42px;
+  padding: 0 26px;
+  font-size: var(--t-sm);
+}
+.lp-cta-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--ink-2);
+  text-decoration: none;
+  transition: color 120ms ease;
+}
+.lp-cta-secondary:hover {
+  color: var(--accent);
+}
+.lp-arrow {
+  animation: lp-bob 2s ease-in-out infinite;
+}
+@keyframes lp-bob {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(3px);
+  }
+}
+.lp-proof {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  margin-top: 40px;
+  padding-top: 20px;
+  border-top: 1px solid var(--lp-rule);
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  letter-spacing: 0.03em;
+}
+.lp-proof-sep {
+  width: 4px;
+  height: 4px;
+  background: var(--line-strong);
+}
+
+/* --- hero sphere backdrop ---
+   Extends up past the nav (negative top) and taller than the hero so the sphere
+   bleeds off the top edge and reads as big. No mask/blur — crisp, just low
+   opacity so it sits quietly behind the copy. */
+.lp-sphere {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -88px; /* reach up behind the sticky navbar */
+  height: calc(100% + 88px);
+  z-index: 0;
+  pointer-events: none;
+  opacity: 0.55;
+}
+.lp-sphere-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* --- atmospheric aurora: a living green atmosphere drifting across the whole
+   site. A fixed, clipped layer holds several soft blobs that float on slow,
+   independent loops (heavier toward the bottom). Only translate + opacity
+   animate, always within the clipped layer, so the page width never changes. */
+.lp-aurora {
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  overflow: hidden; /* contains the blobs so drift can't widen the page */
+}
+/* Scattered blobs at irregular positions/sizes, each drifting on its own
+   off-axis vector and timing — nothing centered, nothing synced. Lower alpha
+   for a faint atmosphere. Six blobs: two pseudo-elements + four JSX spans. */
+.lp-aurora::before,
+.lp-aurora::after,
+.lp-aurora-blob {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  will-change: transform, opacity;
+}
+/* b1 — big, low-left, lazy up-right drift */
+.lp-aurora::before {
+  left: -6%;
+  bottom: -18vh;
+  width: 54vw;
+  height: 50vh;
+  filter: blur(72px);
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 211, 153, 0.16),
+    transparent 66%
+  );
+  animation: lp-atmo-1 26s linear infinite;
+}
+/* b2 — mid-right, deeper emerald, drifts down-left */
+.lp-aurora::after {
+  right: -8%;
+  top: 22%;
+  width: 40vw;
+  height: 44vh;
+  filter: blur(64px);
+  background: radial-gradient(
+    circle at center,
+    rgba(16, 185, 129, 0.13),
+    transparent 68%
+  );
+  animation: lp-atmo-2 31s linear infinite;
+}
+/* b3..b6 — JSX spans, each positioned + animated individually */
+.lp-aurora-blob {
+  filter: blur(76px);
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 211, 153, 0.1),
+    transparent 70%
+  );
+}
+.lp-aurora-blob:nth-child(1) {
+  left: 58%;
+  top: -8%;
+  width: 34vw;
+  height: 40vh;
+  animation: lp-atmo-3 37s linear infinite;
+}
+.lp-aurora-blob:nth-child(2) {
+  left: 14%;
+  top: 34%;
+  width: 30vw;
+  height: 32vh;
+  filter: blur(60px);
+  background: radial-gradient(
+    circle at center,
+    rgba(16, 185, 129, 0.1),
+    transparent 68%
+  );
+  animation: lp-atmo-4 43s linear infinite;
+}
+.lp-aurora-blob:nth-child(3) {
+  right: 22%;
+  bottom: -14vh;
+  width: 38vw;
+  height: 42vh;
+  animation: lp-atmo-5 29s linear infinite;
+}
+.lp-aurora-blob:nth-child(4) {
+  left: 40%;
+  bottom: 8%;
+  width: 26vw;
+  height: 28vh;
+  filter: blur(58px);
+  background: radial-gradient(
+    circle at center,
+    rgba(52, 211, 153, 0.08),
+    transparent 72%
+  );
+  animation: lp-atmo-6 49s linear infinite;
+}
+/* Continuous traveling journeys: each blob wanders a long multi-waypoint loop
+   (never ping-pongs back to origin), so the field feels like drifting weather,
+   never settling into a centered arrangement. Start == end for a seamless loop;
+   the waypoints between are irregular and off-axis. Use `infinite` (not
+   `alternate`) so it keeps traveling forward. */
+@keyframes lp-atmo-1 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.5;
+  }
+  25% {
+    transform: translate(13vw, -9vh);
+    opacity: 0.7;
+  }
+  50% {
+    transform: translate(6vw, -18vh);
+    opacity: 0.55;
+  }
+  75% {
+    transform: translate(-8vw, -7vh);
+    opacity: 0.68;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.5;
+  }
+}
+@keyframes lp-atmo-2 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+  30% {
+    transform: translate(-11vw, 12vh);
+    opacity: 0.6;
+  }
+  60% {
+    transform: translate(-16vw, 3vh);
+    opacity: 0.45;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+}
+@keyframes lp-atmo-3 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.3;
+  }
+  33% {
+    transform: translate(-9vw, 14vh);
+    opacity: 0.5;
+  }
+  66% {
+    transform: translate(7vw, 9vh);
+    opacity: 0.4;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.3;
+  }
+}
+@keyframes lp-atmo-4 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.28;
+  }
+  40% {
+    transform: translate(15vw, -8vh);
+    opacity: 0.48;
+  }
+  70% {
+    transform: translate(8vw, -16vh);
+    opacity: 0.36;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.28;
+  }
+}
+@keyframes lp-atmo-5 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+  35% {
+    transform: translate(-12vw, -13vh);
+    opacity: 0.55;
+  }
+  65% {
+    transform: translate(-4vw, -20vh);
+    opacity: 0.42;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.4;
+  }
+}
+@keyframes lp-atmo-6 {
+  0% {
+    transform: translate(0, 0);
+    opacity: 0.22;
+  }
+  45% {
+    transform: translate(11vw, 10vh);
+    opacity: 0.44;
+  }
+  80% {
+    transform: translate(4vw, 17vh);
+    opacity: 0.3;
+  }
+  100% {
+    transform: translate(0, 0);
+    opacity: 0.22;
+  }
+}
+
+/* --- scroll reveal --- */
+.lp-reveal {
+  opacity: 0;
+  transform: translateY(16px);
+  transition:
+    opacity 620ms cubic-bezier(0.22, 1, 0.36, 1),
+    transform 620ms cubic-bezier(0.22, 1, 0.36, 1);
+  will-change: opacity, transform;
+}
+.lp-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+
+/* --- hero entrance (load-in stagger) --- */
+.lp-hero-copy > * {
+  opacity: 0;
+  transform: translateY(14px);
+  animation: lp-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+.lp-hero-copy > .lp-eyebrow {
+  animation-delay: 60ms;
+}
+.lp-hero-copy > .lp-h1 {
+  animation-delay: 140ms;
+}
+.lp-hero-copy > .lp-lede {
+  animation-delay: 240ms;
+}
+.lp-hero-copy > .lp-cta-row {
+  animation-delay: 340ms;
+}
+.lp-hero-copy > .lp-proof {
+  animation-delay: 440ms;
+}
+@keyframes lp-rise {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* --- shared section scaffold --- */
+.lp-section {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(56px, 8vw, 104px) var(--lp-gutter);
+  border-top: 1px solid var(--lp-rule);
+}
+.lp-section-head {
+  max-width: var(--lp-measure);
+  margin-bottom: clamp(32px, 5vw, 56px);
+}
+.lp-kicker {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.16em;
+  color: var(--accent);
+  margin-bottom: 16px;
+}
+.lp-kicker::before {
+  content: "// ";
+  color: var(--ink-3);
+}
+.lp-kicker-center {
+  display: block;
+  text-align: center;
+  margin-bottom: 32px;
+}
+.lp-h2 {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(1.4rem, 2.8vw, 2rem);
+  line-height: 1.14;
+  letter-spacing: -0.015em;
+}
+.lp-section-sub {
+  margin: 16px 0 0;
+  color: var(--ink-2);
+  font-size: 1rem;
+  line-height: 1.6;
+  max-width: 58ch;
+}
+
+/* --- mechanisms: numbered editorial rows, not glassy cards --- */
+.lp-mech-grid {
+  display: grid;
+  gap: 0;
+}
+/* clean editorial row: emblem on the left, tag → title → body on the right */
+.lp-mech {
+  display: flex;
+  gap: clamp(18px, 3vw, 32px);
+  align-items: flex-start;
+  padding: clamp(26px, 3.4vw, 38px) 0;
+  border-top: 1px solid var(--lp-rule);
+}
+.lp-mech:last-child {
+  border-bottom: 1px solid var(--lp-rule);
+}
+.lp-mech-icon {
+  width: 48px;
+  height: 48px;
+  flex: none;
+  margin-top: 2px;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.lp-mech:hover .lp-mech-icon {
+  transform: rotate(-4deg) scale(1.06);
+}
+.lp-mech-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.lp-mech-tag {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--ink-3);
+}
+.lp-mech-title {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  letter-spacing: -0.01em;
+}
+.lp-mech-body {
+  margin: 0;
+  max-width: 64ch;
+  color: var(--ink-2);
+  font-size: 0.98rem;
+  line-height: 1.62;
+}
+
+/* --- the gate: a vertical pipeline with a live pulse traveling down the rail.
+   Numbered nodes sit ON the rail; rows align perfectly (no wrap chaos). --- */
+.lp-gate {
+  position: relative;
+  max-width: 720px;
+  padding-left: 0;
+}
+/* the rail: a hairline spine the nodes hang on */
+.lp-gate-rail {
+  position: absolute;
+  left: 19px;
+  top: 20px;
+  bottom: 20px;
+  width: 2px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--line-strong) 8%,
+    var(--line-strong) 92%,
+    transparent
+  );
+  overflow: hidden;
+}
+/* a pulse of light traveling down the rail, on a loop */
+.lp-gate-pulse {
+  position: absolute;
+  left: -1px;
+  width: 4px;
+  height: 26%;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    var(--accent),
+    transparent
+  );
+  filter: drop-shadow(0 0 6px rgba(52, 211, 153, 0.9));
+  animation: lp-gate-travel 4.2s cubic-bezier(0.6, 0, 0.4, 1) infinite;
+}
+@keyframes lp-gate-travel {
+  0% {
+    top: -30%;
+    opacity: 0;
+  }
+  10% {
+    opacity: 1;
+  }
+  90% {
+    opacity: 1;
+  }
+  100% {
+    top: 100%;
+    opacity: 0;
+  }
+}
+.lp-gate-row {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 18px;
+  padding: 14px 0;
+}
+.lp-gate-node {
+  position: relative;
+  z-index: 1;
+  flex: none;
+  width: 40px;
+  height: 40px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--line-strong);
+  background: var(--bg);
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  font-weight: 700;
+  color: var(--accent);
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease;
+}
+/* node lights up as its row reveals */
+.lp-gate-row.is-in .lp-gate-node {
+  border-color: rgba(52, 211, 153, 0.5);
+  box-shadow: 0 0 0 1px rgba(52, 211, 153, 0.15);
+}
+.lp-gate-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-top: 3px;
+  min-width: 0;
+}
+.lp-gate-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: var(--t-base);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.lp-gate-icon {
+  width: 26px;
+  height: 26px;
+  flex: none;
+}
+.lp-gate-desc {
+  color: var(--ink-2);
+  font-size: var(--t-sm);
+  line-height: 1.5;
+}
+
+/* two-column: pipeline left, live terminal right */
+.lp-gate-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: clamp(28px, 5vw, 64px);
+  align-items: start;
+}
+@media (max-width: 860px) {
+  .lp-gate-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.lp-gate-layout .lp-gate {
+  max-width: none;
+}
+
+/* --- live terminal --- */
+.lp-term {
+  border: 1px solid var(--term-border);
+  background: var(--term-bg);
+  box-shadow: 0 24px 60px -30px rgba(0, 0, 0, 0.8);
+  position: sticky;
+  top: 88px;
+  overflow: hidden;
+}
+.lp-term-bar {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 14px;
+  background: var(--term-bar);
+  border-bottom: 1px solid var(--term-border);
+}
+.lp-term-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--line-strong);
+}
+.lp-term-dot:first-child {
+  background: rgba(248, 113, 113, 0.7);
+}
+.lp-term-dot:nth-child(2) {
+  background: rgba(245, 158, 11, 0.7);
+}
+.lp-term-dot:nth-child(3) {
+  background: rgba(52, 211, 153, 0.7);
+}
+.lp-term-title {
+  margin-left: 8px;
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  letter-spacing: 0.04em;
+}
+.lp-term-body {
+  padding: 18px 16px;
+  min-height: 168px;
+  font-family: var(--mono);
+  font-size: var(--t-sm);
+  line-height: 1.7;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.lp-term-line {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  animation: lp-term-in 200ms ease;
+}
+@keyframes lp-term-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.lp-term-prefix {
+  flex: none;
+  width: 12px;
+  text-align: center;
+  color: var(--ink-3);
+}
+.lp-term-text {
+  min-width: 0;
+  word-break: break-word;
+}
+/* line kinds */
+.lp-term-in .lp-term-text {
+  color: var(--ink);
+}
+.lp-term-in .lp-term-prefix {
+  color: var(--accent);
+}
+.lp-term-run .lp-term-text {
+  color: var(--ink-2);
+}
+.lp-term-ok .lp-term-prefix {
+  color: var(--good);
+}
+.lp-term-ok .lp-term-text {
+  color: var(--good);
+}
+.lp-term-hold .lp-term-prefix {
+  color: var(--warn);
+}
+.lp-term-hold .lp-term-text {
+  color: var(--warn);
+}
+.lp-term-cursor {
+  display: inline-block;
+  width: 7px;
+  height: 1.05em;
+  margin-left: 2px;
+  transform: translateY(2px);
+  background: var(--accent);
+  animation: lp-term-blink 1s steps(1) infinite;
+}
+@keyframes lp-term-blink {
+  0%,
+  50% {
+    opacity: 1;
+  }
+  51%,
+  100% {
+    opacity: 0;
+  }
+}
+
+/* --- papers --- */
+.lp-papers {
+  display: grid;
+  gap: 0;
+}
+.lp-paper {
+  display: grid;
+  grid-template-columns: 160px minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 24px;
+  padding: 22px 0;
+  border-top: 1px solid var(--lp-rule);
+  text-decoration: none;
+  color: inherit;
+  transition: background 120ms ease;
+}
+.lp-paper:last-child {
+  border-bottom: 1px solid var(--lp-rule);
+}
+.lp-paper:hover {
+  background: rgba(52, 211, 153, 0.03);
+}
+.lp-paper:hover .lp-paper-title {
+  color: var(--accent);
+}
+.lp-paper-axis {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-3);
+}
+.lp-paper-title {
+  font-weight: 600;
+  font-size: 1.02rem;
+  line-height: 1.4;
+  transition: color 120ms ease;
+}
+.lp-paper-doi {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  white-space: nowrap;
+  display: inline-flex;
+  gap: 4px;
+}
+.lp-paper-ext {
+  color: var(--accent);
+}
+@media (max-width: 720px) {
+  .lp-paper {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .lp-paper-doi {
+    white-space: normal;
+    word-break: break-all;
+  }
+}
+
+/* --- sponsors --- */
+.lp-sponsors-section {
+  text-align: center;
+}
+.lp-sponsors {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0;
+  border: 1px solid var(--lp-rule);
+}
+.lp-sponsor {
+  flex: 1 1 200px;
+  padding: 26px 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  border-right: 1px solid var(--lp-rule);
+}
+.lp-sponsor:last-child {
+  border-right: none;
+}
+.lp-sponsor-name {
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: var(--t-md);
+}
+.lp-sponsor-role {
+  color: var(--ink-3);
+  font-size: var(--t-xs);
+  line-height: 1.5;
+}
+@media (max-width: 720px) {
+  .lp-sponsor {
+    flex-basis: 100%;
+    border-right: none;
+    border-bottom: 1px solid var(--lp-rule);
+  }
+  .lp-sponsor:last-child {
+    border-bottom: none;
+  }
+}
+
+/* --- CTA band --- */
+.lp-cta-band {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: clamp(64px, 10vw, 120px) var(--lp-gutter);
+  border-top: 1px solid var(--lp-rule);
+  text-align: center;
+}
+.lp-cta-h2 {
+  margin: 0;
+  font-family: var(--mono);
+  font-weight: 700;
+  font-size: clamp(1.6rem, 3.6vw, 2.6rem);
+  letter-spacing: -0.02em;
+}
+.lp-cta-sub {
+  margin: 18px auto 0;
+  max-width: 52ch;
+  color: var(--ink-2);
+  font-size: 1.02rem;
+  line-height: 1.6;
+}
+.lp-cta-band-btn {
+  height: 46px;
+  padding: 0 32px;
+  margin-top: 32px;
+  font-size: var(--t-sm);
+}
+
+/* --- footer --- */
+.lp-footer {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 32px var(--lp-gutter) 56px;
+  border-top: 1px solid var(--lp-rule);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.lp-footer-note {
+  font-family: var(--mono);
+  font-size: var(--t-xs);
+  color: var(--ink-3);
+  letter-spacing: 0.02em;
+}
+
+/* --- chips (shared small verdict tags) --- */
+.lp-chip {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border: 1px solid var(--line-strong);
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.lp-chip-good {
+  color: var(--good);
+  border-color: rgba(52, 211, 153, 0.4);
+  background: var(--good-bg);
+}
+.lp-chip-warn {
+  color: var(--warn);
+  border-color: rgba(245, 158, 11, 0.4);
+  background: var(--warn-bg);
+}
+
+/* --- reduced motion: kill all motion, show final state --- */
+@media (prefers-reduced-motion: reduce) {
+  .lp * {
+    animation: none !important;
+    transition: none !important;
+  }
+  .lp-reveal {
+    opacity: 1;
+    transform: none;
+  }
+  .lp-hero-copy > * {
+    opacity: 1;
+    transform: none;
+  }
+  .lp-aurora::before,
+  .lp-aurora::after,
+  .lp-aurora-blob {
+    animation: none !important;
+    transform: none !important;
+  }
+  .lp-gate-pulse {
+    display: none;
+  }
+}

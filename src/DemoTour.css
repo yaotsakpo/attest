@@ -1,0 +1,110 @@
+/* Demo button + guided spotlight tour. Terminal-brand: emerald ring, sharp
+   corners, mono labels. The overlay dims everything except the highlighted
+   panel, with a tooltip explaining it. */
+
+.demo-btn {
+  white-space: nowrap;
+}
+.demo-tour-btn {
+  white-space: nowrap;
+}
+
+/* --- tour overlay --- */
+.tour-root {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+}
+/* the four dark panels that surround (but don't cover) the spotlight target */
+.tour-mask {
+  position: fixed;
+  background: rgba(8, 9, 13, 0.78);
+  backdrop-filter: blur(1px);
+  transition:
+    top 260ms ease,
+    left 260ms ease,
+    width 260ms ease,
+    height 260ms ease;
+}
+/* emerald ring around the highlighted panel */
+.tour-ring {
+  position: fixed;
+  border: 1.5px solid var(--accent, #34d399);
+  box-shadow:
+    0 0 0 1px rgba(52, 211, 153, 0.3),
+    0 0 22px rgba(52, 211, 153, 0.35);
+  pointer-events: none;
+  transition:
+    top 260ms ease,
+    left 260ms ease,
+    width 260ms ease,
+    height 260ms ease;
+}
+
+/* the explanatory tooltip card */
+.tour-tip {
+  position: fixed;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  background: var(--surface, #12151c);
+  border: 1px solid var(--line-strong, #313743);
+  box-shadow: 0 24px 60px -24px rgba(0, 0, 0, 0.85);
+  padding: 16px 18px 18px;
+  transition:
+    top 260ms ease,
+    left 260ms ease;
+}
+.tour-tip-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+.tour-step-count {
+  font-family: var(--mono, monospace);
+  font-size: 0.7rem;
+  letter-spacing: 0.1em;
+  color: var(--accent, #34d399);
+}
+.tour-x {
+  background: none;
+  border: none;
+  color: var(--ink-3, #6b7280);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1;
+  padding: 2px;
+}
+.tour-x:hover {
+  color: var(--ink, #f3f4f6);
+}
+.tour-tip-title {
+  margin: 0 0 8px;
+  font-family: var(--mono, monospace);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--ink, #f3f4f6);
+}
+.tour-tip-body {
+  margin: 0 0 16px;
+  font-size: 0.85rem;
+  line-height: 1.6;
+  color: var(--ink-2, #9ca3af);
+}
+.tour-tip-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+.tour-nav {
+  height: 32px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-mask,
+  .tour-ring,
+  .tour-tip {
+    transition: none;
+  }
+}

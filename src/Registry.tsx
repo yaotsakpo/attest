@@ -75,7 +75,7 @@ export function Registry() {
   const hasMore = all.length > shown;
 
   return (
-    <section className="section">
+    <section className="section" data-tour="registry">
       <div className="section-head">
         <span className="section-label">[ registry ]</span>
         <h2 className="section-title">Who my agent trusts</h2>

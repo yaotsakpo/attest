@@ -37,7 +37,7 @@ export function ActivityLog() {
   const sentinel = useInfiniteScroll(canLoad, loadNext);
 
   return (
-    <section className="section">
+    <section className="section" data-tour="activity">
       <div className="section-head">
         <span className="section-label">[ activity ]</span>
         <h2 className="section-title">What my agent did</h2>

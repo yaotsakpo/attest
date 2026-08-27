@@ -17,9 +17,7 @@
     "convex": "^1.45.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
-    "react-force-graph-2d": "^1.29.1",
-    "resend": "^6.24.0",
-    "three": "^0.185.1"
+    "resend": "^6.24.0"
   },
   "devDependencies": {
     "@edge-runtime/vm": "^5.0.0",

@@ -59,7 +59,7 @@ export function NeedsYou() {
   const count = held?.length ?? 0;
 
   return (
-    <section className="section">
+    <section className="section" data-tour="needs-you">
       <div className="section-head">
         <span className="section-label">[ needs you ]</span>
         <h2 className="section-title">Held for your call</h2>

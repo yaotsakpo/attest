@@ -1,6 +1,7 @@
 import { type FormEvent, useState } from "react";
 import { Authenticated, Unauthenticated, AuthLoading } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
+import { Landing } from "./Landing";
 import { Registry } from "./Registry";
 import { Board } from "./Board";
 import { TrustGraph } from "./TrustGraph";
@@ -10,9 +11,10 @@ import { InboxBadge } from "./InboxBadge";
 import { PolicyPanel } from "./PolicyPanel";
 import { VaultDrawer } from "./VaultDrawer";
 import { ContinuityDrawer } from "./ContinuityDrawer";
+import { DemoTour } from "./DemoTour";
 import "./App.css";
 
-function SignIn() {
+function SignIn({ onBack }: { onBack: () => void }) {
   const { signIn } = useAuthActions();
   // Passwordless: enter email → get an 8-digit code → enter it. No password to
   // set, forget, or reset. Two steps, tracked by `sent`.
@@ -55,7 +57,20 @@ function SignIn() {
     <div className="auth-wrap">
       {step === "email" ? (
         <form className="auth-card" onSubmit={sendCode}>
-          <h1 className="auth-title">Attest</h1>
+          <button
+            type="button"
+            className="auth-logo-btn"
+            onClick={onBack}
+            aria-label="Back to home"
+          >
+            <img
+              className="auth-logo"
+              src="/brand/attest-wordmark.png"
+              alt="Attest"
+              width={2076}
+              height={398}
+            />
+          </button>
           <p className="auth-sub">
             Your agent talks to other agents and people over email, and never
             hands your info to a counterpart it can’t verify.
@@ -80,6 +95,9 @@ function SignIn() {
           <p className="auth-sub" style={{ margin: 0 }}>
             No password. We send a one-time code to your email.
           </p>
+          <button type="button" className="link auth-back" onClick={onBack}>
+            ← Back to home
+          </button>
         </form>
       ) : (
         <form className="auth-card" onSubmit={verifyCode}>
@@ -119,6 +137,9 @@ function SignIn() {
           >
             Use a different email
           </button>
+          <button type="button" className="link auth-back" onClick={onBack}>
+            ← Back to home
+          </button>
         </form>
       )}
     </div>
@@ -141,6 +162,7 @@ function Dashboard() {
           <span className="app-tagline">the trust layer for your agent</span>
         </div>
         <div className="header-actions">
+          <DemoTour />
           <InboxBadge />
           <button
             className={`btn ${drawer === "vault" ? "btn-primary" : "btn-ghost"}`}
@@ -184,7 +206,7 @@ function Dashboard() {
       <main>
         <div className="grid2">
           {/* Row 1: conversations — FULL WIDTH across both columns */}
-          <div className="span-2">
+          <div className="span-2" data-tour="board">
             <Board />
           </div>
           {/* Row 2: registry ‖ needs-you (held + remember) */}
@@ -199,6 +221,18 @@ function Dashboard() {
   );
 }
 
+function SignedOut() {
+  // Landing is the front door; "Sign in" opens the auth screen. Mature-dev
+  // split: the landing sells, the auth screen collects. Pure local view state,
+  // no router needed for two screens.
+  const [view, setView] = useState<"landing" | "signin">("landing");
+  return view === "landing" ? (
+    <Landing onSignIn={() => setView("signin")} />
+  ) : (
+    <SignIn onBack={() => setView("landing")} />
+  );
+}
+
 export default function App() {
   return (
     <>
@@ -206,7 +240,7 @@ export default function App() {
         <p className="center">Loading…</p>
       </AuthLoading>
       <Unauthenticated>
-        <SignIn />
+        <SignedOut />
       </Unauthenticated>
       <Authenticated>
         <Dashboard />

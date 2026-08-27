@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as board from "../board.js";
 import type * as continuity from "../continuity.js";
 import type * as continuityStore from "../continuityStore.js";
+import type * as demo from "../demo.js";
 import type * as dev from "../dev.js";
 import type * as enrich from "../enrich.js";
 import type * as events from "../events.js";
@@ -56,6 +57,7 @@ declare const fullApi: ApiFromModules<{
   board: typeof board;
   continuity: typeof continuity;
   continuityStore: typeof continuityStore;
+  demo: typeof demo;
   dev: typeof dev;
   enrich: typeof enrich;
   events: typeof events;

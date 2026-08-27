@@ -1,19 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
-import ForceGraph2D from "react-force-graph-2d";
 import { api } from "../convex/_generated/api";
 import { useDialog } from "./useDialog";
+import { TrustGraph3D } from "./TrustGraph3D";
+import type { GNode, GLink } from "./TrustGraph3D";
 
-// Stable, interactive trust-transfer graph. Built the correct react-force-graph
-// way (per research): graphData is memoized with reused node objects so the sim
-// never restarts on re-render; ALL interaction (pan/zoom/drag/click) is the
-// library's built-in — no hand-rolled mouse handlers; nodes freeze on
-// onEngineStop so nothing drifts. One persistent instance (fullscreen toggles a
-// CSS class, does NOT mount a second graph).
-
-const EMERALD = "110, 231, 183";
-const RED = "248, 113, 113";
-const GRAY = "156, 163, 175";
+// The trust-transfer graph. Rendered as a real 3D node-sphere (see
+// TrustGraph3D) — the agent at the centre, counterparts placed on a sphere,
+// rotated + projected every frame so depth reads dimensionally, matching the
+// landing hero. graphData is memoized (stable) and mapped to the 3D component's
+// node/link shape; the detail panel + fullscreen modal wrap it.
 
 type Kind = "agent" | "hub" | "company" | "direct";
 type TNode = {
@@ -43,12 +39,11 @@ type TLink = { source: string; target: string; kind: "agent" | "hub" | "held" };
 export function TrustGraph() {
   const tg = useQuery(api.registry.trustGraph);
   const decisions = useQuery(api.registry.domainsWithDecisions);
-  const fgRef = useRef<any>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
   const nodeCacheRef = useRef<Map<string, TNode>>(new Map());
   const [size, setSize] = useState({ w: 600, h: 300 });
   const [expanded, setExpanded] = useState(false);
-  const [selected, setSelected] = useState<TNode | null>(null);
+  const [selected, setSelected] = useState<GNode | null>(null);
 
   // ---- stable graphData: reuse the SAME node objects across renders ----
   const graphData = useMemo(() => {
@@ -77,7 +72,7 @@ export function TrustGraph() {
         viaHub: null,
         inheritedTrust: false,
         hubCompanyCount: 0,
-        val: 8,
+        val: 4,
       };
       cache.set("__agent__", agent);
     }
@@ -109,10 +104,12 @@ export function TrustGraph() {
         viaHub: nd.viaHub,
         inheritedTrust: nd.inheritedTrust,
         hubCompanyCount: nd.hubCompanyCount,
+        // hero node-sphere scale: small soft dots, not chunky balls. Hubs are
+        // slightly larger than companies, everything stays delicate.
         val:
           kind === "hub"
-            ? 7 + Math.min(nd.hubCompanyCount, 4)
-            : 4 + nd.trustScore * 5,
+            ? 3 + Math.min(nd.hubCompanyCount, 4) * 0.5
+            : 1.6 + nd.trustScore * 1.8,
       });
       nodes.push(node);
       seen.add(nd.id);
@@ -151,117 +148,32 @@ export function TrustGraph() {
   const closeExpanded = useCallback(() => setExpanded(false), []);
   const modalRef = useDialog<HTMLDivElement>(expanded, closeExpanded);
 
-  // freeze nodes when the sim settles so nothing drifts, then fit to view
-  const onEngineStop = useCallback(() => {
-    for (const n of graphData.nodes) {
-      n.fx = n.x;
-      n.fy = n.y;
-    }
-    fgRef.current?.zoomToFit(400, 55);
+
+  // map the built graphData to the 3D component's node/link shape
+  const g3d = useMemo(() => {
+    const nodes: GNode[] = graphData.nodes.map((n) => ({
+      id: n.id,
+      label: n.label,
+      kind: n.kind,
+      score: n.score,
+      grade: n.grade,
+      verified: n.verified,
+      total: n.total,
+      held: n.held,
+      askedSensitive: n.askedSensitive,
+      heldSubject: n.heldSubject,
+      reason: n.reason,
+      viaHub: n.viaHub,
+      inheritedTrust: n.inheritedTrust,
+      hubCompanyCount: n.hubCompanyCount,
+    }));
+    const links: GLink[] = graphData.links.map((l) => ({
+      source: l.source,
+      target: l.target,
+      kind: l.kind,
+    }));
+    return { nodes, links };
   }, [graphData]);
-
-  // when data changes, unfreeze so new nodes can settle, then it re-freezes
-  useEffect(() => {
-    for (const n of graphData.nodes) {
-      // only unfreeze nodes with no position yet (new); keep settled ones fixed
-      if (n.x === undefined) {
-        n.fx = undefined;
-        n.fy = undefined;
-      }
-    }
-    fgRef.current?.d3ReheatSimulation?.();
-  }, [graphData]);
-
-  const onNodeClick = useCallback((node: any) => {
-    setSelected(node.kind === "agent" ? null : (node as TNode));
-  }, []);
-
-  const drawNode = useCallback(
-    (node: any, ctx: CanvasRenderingContext2D, scale: number) => {
-      const n = node as TNode;
-      if (n.x === undefined || n.y === undefined) return;
-      const isAgent = n.kind === "agent";
-      const isHub = n.kind === "hub";
-      // Trust EARNED on the node's own authenticated record (solid emerald) is
-      // distinct from trust INHERITED because a hub vouches for it (muted, outline
-      // only). A vouched-for company with an F own-grade must NOT look identical
-      // to a directly-verified node — the color should match its panel.
-      const earned = !n.held && n.score >= 0.55 && n.verified > 0;
-      const inheritedOnly = !n.held && !earned && n.inheritedTrust;
-      const col = n.held ? RED : EMERALD;
-      const r = n.val;
-
-      ctx.shadowColor = isAgent ? "rgba(255,255,255,0.9)" : `rgb(${col})`;
-      ctx.shadowBlur = isAgent ? 14 : n.held ? 5 : 9;
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-      if (isAgent) {
-        ctx.fillStyle = "#f3f4f6";
-        ctx.fill();
-      } else if (isHub) {
-        ctx.fillStyle = "#0b0d12";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 2;
-        ctx.strokeStyle = `rgba(${EMERALD}, 0.95)`;
-        ctx.stroke();
-      } else if (inheritedOnly) {
-        // Trusted only because a hub vouches: dark fill + emerald outline, so it
-        // reads as "vouched for, not verified on its own".
-        ctx.fillStyle = "#0b0d12";
-        ctx.fill();
-        ctx.shadowBlur = 0;
-        ctx.lineWidth = 1.5;
-        ctx.strokeStyle = `rgba(${EMERALD}, 0.7)`;
-        ctx.stroke();
-      } else {
-        ctx.fillStyle = n.held
-          ? `rgba(${RED}, 0.85)`
-          : earned
-            ? `rgba(${EMERALD}, 0.85)`
-            : `rgba(${GRAY}, 0.6)`;
-        ctx.fill();
-      }
-      ctx.shadowBlur = 0;
-      if (n.held && n.askedSensitive) {
-        ctx.strokeStyle = `rgba(${RED}, 0.9)`;
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        ctx.arc(n.x, n.y, r + 4, 0, Math.PI * 2);
-        ctx.stroke();
-      }
-
-      const font = 11 / scale;
-      ctx.font = `${font}px "JetBrains Mono", monospace`;
-      ctx.textAlign = "center";
-      ctx.textBaseline = "top";
-      ctx.fillStyle = isAgent ? "rgba(243,244,246,0.95)" : "rgba(156,163,175,0.9)";
-      ctx.fillText(n.label, n.x, n.y + r + 3 / scale);
-
-      const sub =
-        isHub
-          ? `ATS · ${n.hubCompanyCount} cos`
-          : n.held
-            ? "HELD"
-            : n.inheritedTrust && n.viaHub
-              ? `via ${n.viaHub}`
-              : n.kind === "direct"
-                ? `${Math.round(n.score * 100)}`
-                : "";
-      if (sub) {
-        ctx.font = `700 ${10 / scale}px "JetBrains Mono", monospace`;
-        // inherited-only nodes get a MUTED emerald label, matching their muted
-        // outline — distinct from the solid emerald of directly-earned trust.
-        ctx.fillStyle = n.held
-          ? `rgba(${RED}, 0.95)`
-          : inheritedOnly
-            ? `rgba(${EMERALD}, 0.55)`
-            : `rgba(${EMERALD}, 0.9)`;
-        ctx.fillText(sub, n.x, n.y + r + 3 / scale + font + 1);
-      }
-    },
-    [],
-  );
 
   const count = tg?.nodes.length ?? 0;
 
@@ -339,47 +251,8 @@ export function TrustGraph() {
     </div>
   );
 
-  const graphEl = (w: number, h: number) => (
-    <ForceGraph2D
-      ref={fgRef}
-      width={w}
-      height={h}
-      graphData={graphData}
-      backgroundColor="rgba(0,0,0,0)"
-      cooldownTicks={100}
-      cooldownTime={4000}
-      warmupTicks={20}
-      d3AlphaDecay={0.05}
-      d3VelocityDecay={0.45}
-      d3AlphaMin={0.01}
-      onEngineStop={onEngineStop}
-      linkColor={(l: any) =>
-        l.kind === "held"
-          ? `rgba(${RED}, 0.3)`
-          : l.kind === "hub"
-            ? `rgba(${EMERALD}, 0.25)`
-            : `rgba(${EMERALD}, 0.35)`
-      }
-      linkWidth={1}
-      linkDirectionalParticles={(l: any) => (l.kind === "held" ? 0 : 2)}
-      linkDirectionalParticleWidth={2}
-      linkDirectionalParticleSpeed={0.005}
-      linkDirectionalParticleColor={() => `rgba(${EMERALD}, 0.9)`}
-      nodeCanvasObject={drawNode}
-      nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
-        if (node.x === undefined) return;
-        ctx.fillStyle = color;
-        ctx.beginPath();
-        ctx.arc(node.x, node.y, Math.max(node.val, 7), 0, Math.PI * 2);
-        ctx.fill();
-      }}
-      onNodeClick={onNodeClick}
-      onBackgroundClick={() => setSelected(null)}
-    />
-  );
-
   return (
-    <section className="section">
+    <section className="section" data-tour="graph">
       <div className="section-head">
         <span className="section-label">[ trust map ]</span>
         <h2 className="section-title">Who vouches for whom</h2>
@@ -397,8 +270,16 @@ export function TrustGraph() {
             </p>
           ) : (
             <>
-              {graphEl(size.w, size.h)}
-              <span className="graph-hint-inline">click a node · drag · scroll</span>
+              <TrustGraph3D
+                nodes={g3d.nodes}
+                links={g3d.links}
+                width={size.w}
+                height={size.h}
+                onSelect={setSelected}
+              />
+              <span className="graph-hint-inline">
+                click a node · drag to orbit
+              </span>
               {detail}
             </>
           )}
@@ -418,16 +299,13 @@ export function TrustGraph() {
           >
             {bar(true)}
             <ExpandedGraph
-              graphData={graphData}
-              drawNode={drawNode}
-              onNodeClick={onNodeClick}
-              onBg={() => setSelected(null)}
+              nodes={g3d.nodes}
+              links={g3d.links}
+              onSelect={setSelected}
               detail={detail}
-              onEngineStop={onEngineStop}
-              fgRef={fgRef}
             />
             <div className="graph-hint">
-              click a node for detail · drag · scroll to zoom · esc to close
+              click a node for detail · drag to orbit · esc to close
             </div>
           </div>
         </div>
@@ -436,17 +314,18 @@ export function TrustGraph() {
   );
 }
 
-// Fullscreen graph — its own sizing, but shares the SAME graphData (same node
-// objects), so it doesn't restart the physics from scratch.
+// Fullscreen 3D graph — same data, its own (larger) sizing.
 function ExpandedGraph({
-  graphData,
-  drawNode,
-  onNodeClick,
-  onBg,
+  nodes,
+  links,
+  onSelect,
   detail,
-  onEngineStop,
-  fgRef,
-}: any) {
+}: {
+  nodes: GNode[];
+  links: GLink[];
+  onSelect: (n: GNode | null) => void;
+  detail: React.ReactNode;
+}) {
   const ref = useRef<HTMLDivElement | null>(null);
   const [s, setS] = useState({ w: 900, h: 560 });
   useEffect(() => {
@@ -458,43 +337,14 @@ function ExpandedGraph({
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
-  const EM = "110, 231, 183",
-    RD = "248, 113, 113";
   return (
     <div className="graph-modal-body" ref={ref}>
-      <ForceGraph2D
-        ref={fgRef}
+      <TrustGraph3D
+        nodes={nodes}
+        links={links}
         width={s.w}
         height={s.h}
-        graphData={graphData}
-        backgroundColor="rgba(0,0,0,0)"
-        cooldownTicks={100}
-        cooldownTime={4000}
-        warmupTicks={20}
-        d3AlphaDecay={0.05}
-        d3VelocityDecay={0.45}
-        d3AlphaMin={0.01}
-        onEngineStop={onEngineStop}
-        linkColor={(l: any) =>
-          l.kind === "held"
-            ? `rgba(${RD}, 0.3)`
-            : `rgba(${EM}, 0.3)`
-        }
-        linkWidth={1}
-        linkDirectionalParticles={(l: any) => (l.kind === "held" ? 0 : 2)}
-        linkDirectionalParticleWidth={2.4}
-        linkDirectionalParticleSpeed={0.005}
-        linkDirectionalParticleColor={() => `rgba(${EM}, 0.9)`}
-        nodeCanvasObject={drawNode}
-        nodePointerAreaPaint={(node: any, color: string, ctx: CanvasRenderingContext2D) => {
-          if (node.x === undefined) return;
-          ctx.fillStyle = color;
-          ctx.beginPath();
-          ctx.arc(node.x, node.y, Math.max(node.val, 7), 0, Math.PI * 2);
-          ctx.fill();
-        }}
-        onNodeClick={onNodeClick}
-        onBackgroundClick={onBg}
+        onSelect={onSelect}
       />
       {detail}
     </div>
