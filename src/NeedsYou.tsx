@@ -35,6 +35,7 @@ export function NeedsYou() {
     domain: string;
   } | null>(null);
   const [remembered, setRemembered] = useState(false);
+  const [remembering, setRemembering] = useState(false);
   const [traceId, setTraceId] = useState<Id<"events"> | null>(null);
 
   function approve(e: { _id: Id<"events">; fromAddress: string }) {
@@ -43,10 +44,15 @@ export function NeedsYou() {
     setJustApproved({ id: e._id, domain: domainOf(e.fromAddress) });
   }
   async function doRemember() {
-    if (!justApproved) return;
-    await remember({ eventId: justApproved.id });
-    setRemembered(true);
-    setTimeout(() => setJustApproved(null), 2200);
+    if (!justApproved || remembering) return; // guard against double-fire
+    setRemembering(true);
+    try {
+      await remember({ eventId: justApproved.id });
+      setRemembered(true);
+      setTimeout(() => setJustApproved(null), 2200);
+    } finally {
+      setRemembering(false);
+    }
   }
 
   const count = held?.length ?? 0;
@@ -88,8 +94,9 @@ export function NeedsYou() {
                   <button
                     className="btn btn-primary"
                     onClick={() => void doRemember()}
+                    disabled={remembering}
                   >
-                    Remember this
+                    {remembering ? "Saving…" : "Remember this"}
                   </button>
                   <button
                     className="btn btn-ghost"

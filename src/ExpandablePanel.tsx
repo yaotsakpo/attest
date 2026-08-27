@@ -1,4 +1,5 @@
-import { useEffect, type ReactNode } from "react";
+import { useCallback, type ReactNode } from "react";
+import { useDialog } from "./useDialog";
 
 // A terminal-window panel with a titlebar (traffic lights + path) and an
 // ⤢ expand control that opens the SAME content in a fullscreen modal. Used by
@@ -17,19 +18,10 @@ export function ExpandablePanel({
   onToggle: (v: boolean) => void;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onToggle(false);
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [expanded, onToggle]);
+  const close = useCallback(() => onToggle(false), [onToggle]);
+  const modalRef = useDialog<HTMLDivElement>(expanded, close);
 
-  const bar = (close: boolean) => (
+  const bar = (isClose: boolean) => (
     <div className="term-bar">
       <span className="term-lights">
         <span className="term-light tl-r" />
@@ -37,10 +29,14 @@ export function ExpandablePanel({
         <span className="term-light tl-g" />
       </span>
       <span className="term-path">{path}</span>
-      <button className="term-expand" onClick={() => onToggle(!close)}>
-        {close ? "✕ close" : "⤢ expand"}
+      <button
+        className="term-expand"
+        onClick={() => onToggle(!isClose)}
+        aria-label={isClose ? "Close" : "Expand"}
+      >
+        {isClose ? "✕ close" : "⤢ expand"}
       </button>
-      {!close && tag}
+      {!isClose && tag}
     </div>
   );
 
@@ -53,7 +49,15 @@ export function ExpandablePanel({
 
       {expanded && (
         <div className="panel-overlay" onClick={() => onToggle(false)}>
-          <div className="panel-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={modalRef}
+            className="panel-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label={path}
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+          >
             {bar(true)}
             <div className="panel-modal-body">{children}</div>
           </div>

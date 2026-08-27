@@ -1,7 +1,7 @@
-/* Job Copilot — a trust registry for agents.
-   Dark terminal-minimalist, adjacent to AgentMail/Resend. Registry-as-hero,
-   monospace for all data, semantic color only on verdicts, hairline borders,
-   one signature node-graph. No gradients, no floating accent cards. */
+/* Attest — a trust layer for AI agents.
+   Dark terminal-minimalist. Registry-as-hero, monospace for all data, semantic
+   color only on verdicts, hairline borders, one signature node-graph. No
+   gradients, no floating accent cards. */
 
 @font-face {
   font-family: "Inter";
@@ -256,6 +256,29 @@ button {
   display: flex;
   gap: var(--space-sm);
   align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* Header collapses gracefully on narrow viewports: it grows to fit wrapped
+   controls instead of a fixed 64px bar, the tagline drops, and the inbox badge
+   truncates rather than overflowing. */
+@media (max-width: 720px) {
+  .app-header {
+    height: auto;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+    padding: var(--space-sm) 0;
+    position: static; /* a wrapped sticky header eats too much viewport */
+  }
+  .app-tagline {
+    display: none;
+  }
+  .inbox-badge .mono {
+    max-width: 42vw;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
 }
 .inbox-badge {
   display: inline-flex;
@@ -1906,3 +1929,13 @@ table.data.registry-cols {
 .node-rep.rep-good .node-rep-dot { background: var(--good); }
 .node-rep.rep-bad { color: var(--bad); }
 .node-rep.rep-bad .node-rep-dot { background: var(--bad); }
+
+/* consistent inline error feedback inside drawers */
+.drawer-err {
+  color: var(--bad);
+  background: var(--bad-bg);
+  border: 1px solid var(--bad);
+  font-size: var(--t-sm);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}

@@ -31,9 +31,13 @@ export function ContinuityDrawer({
   const [who, setWho] = useState<"genuine" | "impostor" | null>(null);
   const [busy, setBusy] = useState(false);
 
+  const [err, setErr] = useState<string | null>(null);
+
   async function run(responder: "genuine" | "impostor") {
+    if (busy) return;
     setBusy(true);
     setWho(responder);
+    setErr(null);
     try {
       const r = await demo({
         trustSecret: "trust-established-at-first-contact",
@@ -42,6 +46,8 @@ export function ContinuityDrawer({
       });
       setRes(r);
       setCounter((c) => c + 1); // ratchet forward each interaction
+    } catch {
+      setErr("Couldn’t run the check. Please try again.");
     } finally {
       setBusy(false);
     }
@@ -83,6 +89,8 @@ export function ContinuityDrawer({
           </button>
         </div>
       </div>
+
+      {err && <div className="drawer-err">{err}</div>}
 
       {res && (
         <div className={`cont-result ${res.verified ? "is-ok" : "is-bad"}`}>

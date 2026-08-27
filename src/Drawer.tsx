@@ -1,8 +1,10 @@
-import { useEffect, type ReactNode } from "react";
+import { type ReactNode } from "react";
+import { useDialog } from "./useDialog";
 
 // A right-side slide-out drawer with terminal chrome. Reused by the Agent
-// (policy) and Vault panels. When open, it shows ONLY its own children — nothing
-// else. Esc + scrim click close it; body scroll locks while open.
+// (policy), Vault, and Continuity panels. When open, it shows ONLY its own
+// children. Full modal-dialog behavior (Esc, scroll-lock, focus trap + return)
+// comes from useDialog — one source so every overlay behaves identically.
 export function Drawer({
   open,
   onClose,
@@ -14,22 +16,20 @@ export function Drawer({
   path: string;
   children: ReactNode;
 }) {
-  useEffect(() => {
-    if (!open) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [open, onClose]);
+  const panelRef = useDialog<HTMLElement>(open, onClose);
 
   return (
     <>
       {open && <div className="drawer-scrim" onClick={onClose} />}
-      <aside className={`drawer ${open ? "drawer-open" : ""}`} aria-hidden={!open}>
+      <aside
+        ref={panelRef}
+        className={`drawer ${open ? "drawer-open" : ""}`}
+        role="dialog"
+        aria-modal="true"
+        aria-label={path}
+        aria-hidden={!open}
+        tabIndex={-1}
+      >
         <div className="term-bar">
           <span className="term-lights">
             <span className="term-light tl-r" />
@@ -37,7 +37,7 @@ export function Drawer({
             <span className="term-light tl-g" />
           </span>
           <span className="term-path">{path}</span>
-          <button className="term-expand" onClick={onClose}>
+          <button className="term-expand" onClick={onClose} aria-label="Close">
             ✕ close
           </button>
         </div>

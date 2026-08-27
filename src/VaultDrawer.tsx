@@ -29,14 +29,36 @@ export function VaultDrawer({
   const [label, setLabel] = useState("");
   const [value, setValue] = useState("");
   const [sensitive, setSensitiveNew] = useState(false);
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+
+  // Run a vault mutation with real failure feedback — no more silent
+  // fire-and-forget. Surfaces an error the user can see instead of the row just
+  // not changing.
+  async function run(fn: () => Promise<unknown>) {
+    setErr(null);
+    try {
+      await fn();
+    } catch {
+      setErr("Something went wrong. Please try again.");
+    }
+  }
 
   async function onAdd(e: FormEvent) {
     e.preventDefault();
-    if (!label.trim()) return;
-    await add({ label: label.trim(), value: value.trim(), sensitive });
-    setLabel("");
-    setValue("");
-    setSensitiveNew(false);
+    if (!label.trim() || busy) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await add({ label: label.trim(), value: value.trim(), sensitive });
+      setLabel("");
+      setValue("");
+      setSensitiveNew(false);
+    } catch {
+      setErr("Couldn’t add that field. Please try again.");
+    } finally {
+      setBusy(false);
+    }
   }
 
   return (
@@ -71,11 +93,13 @@ export function VaultDrawer({
             />
             sensitive
           </label>
-          <button type="submit" className="btn btn-primary">
-            Add
+          <button type="submit" className="btn btn-primary" disabled={busy}>
+            {busy ? "Adding…" : "Add"}
           </button>
         </div>
       </form>
+
+      {err && <div className="drawer-err">{err}</div>}
 
       {rows === undefined ? (
         <div className="drawer-empty">Loading…</div>
@@ -92,9 +116,9 @@ export function VaultDrawer({
               key={r._id}
               row={r}
               onSetSensitive={(s) =>
-                void setSensitive({ id: r._id, sensitive: s })
+                void run(() => setSensitive({ id: r._id, sensitive: s }))
               }
-              onRemove={() => void remove({ id: r._id })}
+              onRemove={() => void run(() => remove({ id: r._id }))}
             />
           ))}
         </ul>
@@ -117,6 +141,7 @@ function VaultItem({
   const [label, setLabel] = useState(row.label);
   const [value, setValue] = useState(row.value);
   const [reveal, setReveal] = useState(false);
+  const [saving, setSaving] = useState(false);
 
   function startEdit() {
     setLabel(row.label);
@@ -125,9 +150,14 @@ function VaultItem({
     setEditing(true);
   }
   async function save() {
-    if (!label.trim()) return;
-    await update({ id: row._id, label: label.trim(), value: value.trim() });
-    setEditing(false);
+    if (!label.trim() || saving) return;
+    setSaving(true);
+    try {
+      await update({ id: row._id, label: label.trim(), value: value.trim() });
+      setEditing(false);
+    } finally {
+      setSaving(false);
+    }
   }
 
   if (editing) {
@@ -158,7 +188,11 @@ function VaultItem({
           )}
         </div>
         <div className="vault-item-actions">
-          <button className="btn btn-primary" onClick={() => void save()}>
+          <button
+            className="btn btn-primary"
+            onClick={() => void save()}
+            disabled={saving}
+          >
             Save
           </button>
           <button className="btn btn-ghost" onClick={() => setEditing(false)}>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useQuery } from "convex/react";
 import ForceGraph2D from "react-force-graph-2d";
 import { api } from "../convex/_generated/api";
+import { useDialog } from "./useDialog";
 
 // Stable, interactive trust-transfer graph. Built the correct react-force-graph
 // way (per research): graphData is memoized with reused node objects so the sim
@@ -145,18 +146,10 @@ export function TrustGraph() {
     return () => ro.disconnect();
   }, [expanded]);
 
-  // escape closes fullscreen
-  useEffect(() => {
-    if (!expanded) return;
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setExpanded(false);
-    window.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-    return () => {
-      window.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
-    };
-  }, [expanded]);
+  // fullscreen modal behaves like every other overlay (esc / scroll-lock / focus
+  // trap + return) via the shared hook.
+  const closeExpanded = useCallback(() => setExpanded(false), []);
+  const modalRef = useDialog<HTMLDivElement>(expanded, closeExpanded);
 
   // freeze nodes when the sim settles so nothing drifts, then fit to view
   const onEngineStop = useCallback(() => {
@@ -414,7 +407,15 @@ export function TrustGraph() {
 
       {expanded && (
         <div className="graph-overlay" onClick={() => setExpanded(false)}>
-          <div className="graph-modal" onClick={(e) => e.stopPropagation()}>
+          <div
+            ref={modalRef}
+            className="graph-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="trust map"
+            tabIndex={-1}
+            onClick={(e) => e.stopPropagation()}
+          >
             {bar(true)}
             <ExpandedGraph
               graphData={graphData}
