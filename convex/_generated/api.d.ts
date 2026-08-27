@@ -27,6 +27,7 @@ import type * as lib_disclosureGate from "../lib/disclosureGate.js";
 import type * as lib_grade from "../lib/grade.js";
 import type * as lib_membership from "../lib/membership.js";
 import type * as lib_policyEngine from "../lib/policyEngine.js";
+import type * as lib_replayWindow from "../lib/replayWindow.js";
 import type * as lib_reputation from "../lib/reputation.js";
 import type * as lib_ruleExtract from "../lib/ruleExtract.js";
 import type * as lib_senderAuth from "../lib/senderAuth.js";
@@ -64,6 +65,7 @@ declare const fullApi: ApiFromModules<{
   "lib/grade": typeof lib_grade;
   "lib/membership": typeof lib_membership;
   "lib/policyEngine": typeof lib_policyEngine;
+  "lib/replayWindow": typeof lib_replayWindow;
   "lib/reputation": typeof lib_reputation;
   "lib/ruleExtract": typeof lib_ruleExtract;
   "lib/senderAuth": typeof lib_senderAuth;

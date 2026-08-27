@@ -10,7 +10,8 @@ import { tierFor } from "./lib/membership";
 import { continuityVerdict } from "./lib/continuityState";
 import { aggregateReputation } from "./lib/reputation";
 import { deriveSeed } from "./lib/continuity";
-import { readToken, verifyToken } from "./lib/continuityToken";
+import { readToken } from "./lib/continuityToken";
+import { acceptStep, type ReplayWindow } from "./lib/replayWindow";
 
 type Stage = Doc<"applications">["stage"];
 
@@ -106,12 +107,21 @@ export const applyExtraction = internalMutation({
       // impostor can include a well-formed token, but without the seed it won't
       // verify. A seeded member that sends no token, or a wrong one, is the
       // takeover signal.
+      // Verification runs against an ANTI-REPLAY WINDOW rather than a single
+      // expected step. Ordinary email reorders and drops messages, and a lone
+      // monotone counter flags a legitimate peer as a takeover whenever that
+      // happens. The window accepts any fresh step in range exactly once, in any
+      // order, and still rejects a replayed step. See convex/lib/replayWindow.ts.
       const tokenHex = readToken(ev.rawText);
-      const expectedStep = rec ? rec.counter + 1 : 0;
-      const responseValid =
-        !!rec && rec.seeded && tokenHex !== null
-          ? await verifyToken(rec.seed, expectedStep, tokenHex)
-          : false;
+      let accept: { accepted: boolean; step: number | null; window: ReplayWindow } | null = null;
+      if (rec && rec.seeded && tokenHex !== null) {
+        accept = await acceptStep(
+          { highest: rec.counter, size: 64, seen: rec.seenSteps ?? [] },
+          rec.seed,
+          tokenHex,
+        );
+      }
+      const responseValid = accept?.accepted ?? false;
       const proof = { hasResponse: tokenHex !== null, responseValid };
       const verdict = continuityVerdict(
         rec
@@ -120,10 +130,13 @@ export const applyExtraction = internalMutation({
         proof,
       );
       continuityHold = verdict.shouldHold;
-      // On a confirmed step, advance the ratchet so the next message must carry
-      // the NEXT value (no replay).
-      if (rec && verdict.status === "confirmed") {
-        await ctx.db.patch(rec._id, { counter: expectedStep });
+      // On a confirmed step, persist the advanced window so the consumed step can
+      // never be replayed, while later out-of-order steps remain acceptable.
+      if (rec && verdict.status === "confirmed" && accept?.accepted) {
+        await ctx.db.patch(rec._id, {
+          counter: accept.window.highest,
+          seenSteps: accept.window.seen,
+        });
       }
       // Record the outcome as a reputation event + update the continuity record.
       if (rec && verdict.status !== "not_applicable") {

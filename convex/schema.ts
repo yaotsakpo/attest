@@ -144,7 +144,14 @@ export default defineSchema({
     counterpart: v.string(), // the counterpart domain we track continuity for
     seed: v.string(),
     seeded: v.boolean(),
+    // `counter` is the HIGHEST step accepted so far. It is no longer sufficient on
+    // its own: a single monotone counter falsely flags a legitimate peer whenever
+    // messages arrive out of order (measured at ~61% of sessions at 5% reordering,
+    // and a forward look-ahead does not help because a reordered step arrives
+    // BEHIND the counter). `seenSteps` carries the consumed steps still inside the
+    // anti-replay window, per RFC 4303 §3.4.3. See convex/lib/replayWindow.ts.
     counter: v.number(),
+    seenSteps: v.optional(v.array(v.number())),
     status: v.union(
       v.literal("pending"),
       v.literal("confirmed"),

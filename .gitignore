@@ -27,3 +27,9 @@ dist-ssr
 docs/superpowers/
 .impeccable.md
 .env.local
+
+# Research artifacts — papers + experiments live in the repo working tree but
+# are NEVER committed to the public repo. Priority is established via Zenodo DOIs;
+# the public repo cites them, it does not contain the drafts or the measurements.
+papers/
+experiments/
