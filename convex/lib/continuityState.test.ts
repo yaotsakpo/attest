@@ -25,18 +25,28 @@ describe("continuityVerdict", () => {
     expect(v.shouldHold).toBe(false);
   });
 
-  test("seeded counterpart, WRONG response → takeover → hold", () => {
+  // COMMISSION (a wrong token): a self-contained cryptographic proof of a fault.
+  // An impostor without the seed produced a token that doesn't verify. This is
+  // PROVABLE and therefore transferable network-wide.
+  test("seeded counterpart, WRONG response → takeover_suspected, holds, PROVABLE", () => {
     const rec: ContinuityRecord = { seeded: true, counter: 3, lastStatus: "confirmed" };
     const v = continuityVerdict(rec, { hasResponse: true, responseValid: false });
     expect(v.status).toBe("takeover_suspected");
     expect(v.shouldHold).toBe(true);
+    expect(v.provable).toBe(true); // commission fault → transferable
   });
 
-  test("seeded counterpart, response MISSING → takeover → hold (a member must carry it)", () => {
+  // OMISSION (a missing token): Haeberlen/Kuznetsov — there is NO self-contained
+  // proof of an omission. It could be reordering, delay, or a drop (which the
+  // continuity experiment measured as ~61% of sessions at 5% reordering). So we
+  // HOLD LOCALLY (safe) but the fault is NOT provable and must NOT propagate as a
+  // network reputation event, or a dropped email permanently smears an honest agent.
+  test("seeded counterpart, MISSING response → unproven_gap, holds LOCALLY, NOT provable", () => {
     const rec: ContinuityRecord = { seeded: true, counter: 3, lastStatus: "confirmed" };
     const v = continuityVerdict(rec, { hasResponse: false, responseValid: false });
-    expect(v.status).toBe("takeover_suspected");
-    expect(v.shouldHold).toBe(true);
+    expect(v.status).toBe("unproven_gap");
+    expect(v.shouldHold).toBe(true); // still safe locally
+    expect(v.provable).toBe(false); // omission → NOT transferable
   });
 
   test("record exists but not yet seeded (trusted once, seed just sent, awaiting first proof) → pending, no hold", () => {

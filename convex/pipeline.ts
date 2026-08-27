@@ -138,19 +138,29 @@ export const applyExtraction = internalMutation({
           seenSteps: accept.window.seen,
         });
       }
-      // Record the outcome as a reputation event + update the continuity record.
+      // Update the local continuity record for every applicable verdict.
       if (rec && verdict.status !== "not_applicable") {
         await ctx.db.patch(rec._id, {
           status: verdict.status,
           updatedAt: Date.now(),
         });
-        if (verdict.status === "confirmed" || verdict.status === "takeover_suspected") {
+        // Emit a NETWORK-WIDE reputation event ONLY for outcomes that carry a
+        // self-contained proof: a confirmed continuity, or a PROVABLE takeover
+        // (a wrong token). An `unproven_gap` (missing token) holds LOCALLY but
+        // must NOT propagate — an omission is indistinguishable from reordering
+        // or a drop (Haeberlen/Kuznetsov), so a lost message must never smear an
+        // honest agent's standing across the network.
+        if (verdict.status === "confirmed") {
           await ctx.db.insert("reputationEvents", {
             counterpart: domain,
-            kind:
-              verdict.status === "confirmed"
-                ? "continuity_confirmed"
-                : "takeover_suspected",
+            kind: "continuity_confirmed",
+            userId: ev.userId,
+            at: Date.now(),
+          });
+        } else if (verdict.status === "takeover_suspected" && verdict.provable) {
+          await ctx.db.insert("reputationEvents", {
+            counterpart: domain,
+            kind: "takeover_suspected",
             userId: ev.userId,
             at: Date.now(),
           });

@@ -30,6 +30,7 @@ import type * as lib_policyCommitment from "../lib/policyCommitment.js";
 import type * as lib_policyEngine from "../lib/policyEngine.js";
 import type * as lib_replayWindow from "../lib/replayWindow.js";
 import type * as lib_reputation from "../lib/reputation.js";
+import type * as lib_reputationClass from "../lib/reputationClass.js";
 import type * as lib_ruleExtract from "../lib/ruleExtract.js";
 import type * as lib_senderAuth from "../lib/senderAuth.js";
 import type * as lib_trustScore from "../lib/trustScore.js";
@@ -70,6 +71,7 @@ declare const fullApi: ApiFromModules<{
   "lib/policyEngine": typeof lib_policyEngine;
   "lib/replayWindow": typeof lib_replayWindow;
   "lib/reputation": typeof lib_reputation;
+  "lib/reputationClass": typeof lib_reputationClass;
   "lib/ruleExtract": typeof lib_ruleExtract;
   "lib/senderAuth": typeof lib_senderAuth;
   "lib/trustScore": typeof lib_trustScore;

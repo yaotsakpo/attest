@@ -156,6 +156,7 @@ export default defineSchema({
       v.literal("pending"),
       v.literal("confirmed"),
       v.literal("takeover_suspected"),
+      v.literal("unproven_gap"), // missing token: held locally, not propagated
     ),
     updatedAt: v.number(),
   })

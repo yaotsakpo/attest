@@ -245,8 +245,9 @@ test("continuity: in-network first contact seeds; later message without proof ->
   expect(seededRec).not.toBeNull();
   expect(seededRec!.seeded).toBe(true);
 
-  // Later message from the SAME address, no continuity proof — the takeover
-  // signal. Must hold, and record a takeover reputation event.
+  // Later message from the SAME address with NO continuity token — an OMISSION.
+  // Holds LOCALLY (safe), but an omission is not a proof (could be reordering or
+  // a drop), so it must NOT emit a network-wide takeover reputation event.
   await t.mutation(internal.inbound.ingestInbound, {
     userId,
     agentmailMsgId: "peer_2",
@@ -258,15 +259,16 @@ test("continuity: in-network first contact seeds; later message without proof ->
   await t.finishAllScheduledFunctions(() => {});
 
   const second = await eventByMsg(t, "peer_2");
-  expect(second!.gateAction).toBe("hold_for_approval"); // takeover suspected
+  expect(second!.gateAction).toBe("hold_for_approval"); // held locally — safe
 
+  // …but the omission did NOT propagate as reputation (only provable faults do).
   const repEvents = await t.run(async (ctx) =>
     ctx.db
       .query("reputationEvents")
       .withIndex("by_counterpart", (q) => q.eq("counterpart", peerDomain))
       .collect(),
   );
-  expect(repEvents.some((e) => e.kind === "takeover_suspected")).toBe(true);
+  expect(repEvents.some((e) => e.kind === "takeover_suspected")).toBe(false);
 });
 
 // The crypto is what gates, not marker-presence. A seeded peer that sends the
@@ -337,4 +339,14 @@ test("continuity crypto: real token confirms, forged token = takeover", async ()
   await t.finishAllScheduledFunctions(() => {});
   const bad = await eventByMsg(t, "cx_3");
   expect(bad!.gateAction).toBe("hold_for_approval"); // forged token fails crypto → takeover
+
+  // A WRONG token is a COMMISSION fault — self-contained proof — so it DOES emit
+  // a network-wide reputation event (unlike an omission, which stays local).
+  const rep = await t.run(async (ctx) =>
+    ctx.db
+      .query("reputationEvents")
+      .withIndex("by_counterpart", (q) => q.eq("counterpart", "agentmail.to"))
+      .collect(),
+  );
+  expect(rep.some((e) => e.kind === "takeover_suspected")).toBe(true);
 });
