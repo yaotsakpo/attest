@@ -94,6 +94,10 @@ export const applyExtraction = internalMutation({
     // no record, so the verdict is not_applicable and nothing changes. A seeded
     // member whose message fails the check is a possible takeover → hold.
     let continuityHold = false;
+    // a_Z for §5.1: does THIS querying user have an unmet continuity expectation
+    // (an absent proof) for this counterpart? An omission is local, so it enters
+    // reputation only through the querier's own view, never as a network event.
+    let localAbsent = 0;
     if (isMember) {
       const rec = await ctx.db
         .query("continuity")
@@ -130,6 +134,7 @@ export const applyExtraction = internalMutation({
         proof,
       );
       continuityHold = verdict.shouldHold;
+      if (verdict.status === "unproven_gap") localAbsent = 1;
       // On a confirmed step, persist the advanced window so the consumed step can
       // never be replayed, while later out-of-order steps remain acceptable.
       if (rec && verdict.status === "confirmed" && accept?.accepted) {
@@ -177,6 +182,7 @@ export const applyExtraction = internalMutation({
       .take(500);
     const reputation = aggregateReputation(
       repEvents.map((e) => ({ kind: e.kind, at: e.at })),
+      localAbsent,
     );
 
     const decision = decideAction({

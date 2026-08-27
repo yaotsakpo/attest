@@ -11,9 +11,11 @@ export const forDomain = query({
   returns: v.object({
     confirmed: v.number(),
     takeovers: v.number(),
+    localAbsent: v.number(),
     flagged: v.boolean(),
     standing: v.union(
       v.literal("unknown"),
+      v.literal("suspected"),
       v.literal("good"),
       v.literal("compromised"),
     ),
@@ -23,6 +25,9 @@ export const forDomain = query({
       .query("reputationEvents")
       .withIndex("by_counterpart", (q) => q.eq("counterpart", args.domain))
       .take(500);
+    // This is the NETWORK standing — the portable, a_Z-independent view. Local
+    // suspicion (a_Z) is per-querier and never network-wide, so it's 0 here by
+    // design; the graph panel shows collective reputation, not local friction.
     return aggregateReputation(
       events.map((e) => ({ kind: e.kind, at: e.at })),
     );
