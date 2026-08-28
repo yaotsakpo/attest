@@ -1,6 +1,8 @@
 # Attest — Convex All Gas Hackathon Submission Copy
 
-Paste these into the vibeapps.dev form fields. Trim to the form's limits.
+Hybrid framing: **lead with the everyday app** (stop email scams), reveal the
+depth (agent trust layer + published research) as the "how." Paste into the
+vibeapps.dev form; trim to its limits.
 
 ---
 
@@ -8,76 +10,78 @@ Paste these into the vibeapps.dev form fields. Trim to the form's limits.
 **Attest**
 
 ## Tagline (one line)
-The trust layer for your AI agent — it decides who your agent trusts and what it
-may do on your behalf, deterministically, with no LLM in the decision path.
+An assistant on your inbox that refuses to get you scammed — it verifies who
+actually sent each email and holds anything sketchy (an SSN request, a fake
+invoice, an unverified wire) until you say yes.
 
 ## Links
-- **Live app:** https://attestagent.dev
+- **Live app (convex.site):** https://dynamic-egret-864.convex.site
+- **Live app (custom domain):** https://attestagent.dev
 - **Code:** https://github.com/yaotsakpo/attest
 - **Demo video:** _[paste after recording]_
+- **Build post (X/LinkedIn):** _[paste after posting]_
 
 ---
 
-## What it does (short)
-Your AI agent is starting to act for you over email — reading, replying, soon
-paying invoices and sharing your details. Attest is the trust layer that governs
-it. It earns a live A–F trust score for every counterpart from authenticated
-mail (not SEO), holds anything it can't stand behind (an unverified sender, an
-SSN request, a payment over your limit), and learns your rules so it handles the
-next one itself. The gate is a deterministic policy engine — no LLM in the
-decision path — so it can't be talked out of a hold by clever text.
+## What it does (the everyday-app pitch — lead with this)
+Everyone's inbox is full of recruiters, vendors, invoices, and the occasional
+stranger asking for something sensitive. Most of us can't tell a real message
+from a convincing fake — that's how phishing works.
 
-## What it does (longer, if there's room)
-A stranger emails your agent asking for your SSN. A content filter might be
-persuaded. Attest says no — because the sender never authenticated, and an SSN
-request is sensitive by rule.
+Attest is an assistant that sits on your inbox and does the checking for you. For
+every email it asks one question: **did this actually come from who it claims?**
+It grades every sender from real email authentication (DMARC), auto-handles the
+ones it can verify, and **holds** anything it can't stand behind — a request for
+your Social Security Number, a $5,000 wire from an address that never
+authenticated, a "confirm your bank details" onboarding email. Those wait for
+you. Approve one and it remembers the rule, so it handles the next one itself.
 
-Every inbound email runs a gate in priority order: **continuity** (has a trusted
-counterpart been taken over?), **reputation** (proven-compromised anywhere?),
-**sensitive** (SSN/bank request → always hold), **policy** (your own rules:
-allow / hold / deny), then a safe default. First match wins; anything unmatched
-holds for you. An unauthorized payment always holds, and a remembered payment
-stays capped at the amount you approved.
+You get the convenience of an assistant that answers routine mail, without the
+risk of it being talked into handing over your details by clever wording.
 
-Trust is derived from the authenticated channel, never from what a message says
-about itself. A trust registry grades every sending domain from observed
-DMARC-authenticated mail, and a trust graph shows how verified hubs (Greenhouse,
-Lever) vouch for the companies that reach you through them — so a company
-inherits trust the first time it appears.
+## The depth underneath (the "how" — reveal after the hook)
+Attest never trusts what a message *says* about itself; it derives trust from the
+authenticated channel. Every message runs a deterministic gate — **continuity**
+(has a trusted sender been taken over?), **reputation** (flagged anywhere?),
+**sensitive** (SSN/bank request → always hold), **your policy**, then a safe
+default. First match wins; anything unmatched holds. **No LLM in the decision
+path**, so it can't be persuaded by text.
 
-Attest is the working implementation of three published papers (authority,
-continuity, reputation), each a mechanism wired into the codebase and tested —
-falsifiable, not just argued. 151 unit + integration tests, including
-ground-truth gates and cross-tenant isolation.
+A live trust registry grades every sending domain from observed authenticated
+mail (not SEO), and a trust graph shows how verified hubs (Greenhouse, Lever)
+vouch for the companies that reach you through them.
+
+It's the working implementation of three published papers (authority, continuity,
+reputation), each a mechanism wired into the codebase and tested — 151 unit +
+integration tests, including ground-truth gates and cross-tenant isolation.
 
 ---
 
-## How each sponsor is used
-- **Convex** — the entire backend and trust engine: schema with indexes;
-  queries / mutations / actions / internal functions; HTTP actions (the AgentMail
-  webhook + an agent-queryable `/registry/domains` API); scheduled functions for
-  enrichment and outbound replies; reactive queries for the live UI; Convex Auth
-  (passwordless email code); per-user data isolation enforced server-side.
-- **AgentMail** — each user's agent inbox: real inbound email via webhook and
-  outbound in-thread replies.
-- **Firecrawl** — v2 scrape enriches each counterpart domain, so you know who
-  you're about to share with.
-- **OpenAI** — typed extraction of structured events from raw emails, with a
-  keyless rule-based fallback.
+## How each sponsor does real work
+- **Convex** — the entire backend: schema + indexes; queries / mutations /
+  actions / internal functions; HTTP actions (the AgentMail webhook + a public
+  `/registry/domains` API); scheduled functions for enrichment + replies;
+  reactive live-updating UI; Convex Auth (passwordless email code); per-user data
+  isolation enforced server-side. Hosted on convex.site.
+- **AgentMail** — each user's real inbox: inbound email via webhook, outbound
+  in-thread replies.
+- **Firecrawl** — scrapes each counterpart's site so you (and the assistant) know
+  who you're about to deal with before sharing anything.
+- **OpenAI** — extracts structured details from raw emails (with a keyless
+  rule-based fallback).
 
 ## Tech stack
-Convex, AgentMail, Firecrawl, OpenAI, React + Vite (frontend hosted on Vercel,
-backend on Convex), TypeScript. Passwordless email-code auth via Convex Auth +
-Resend.
+Convex (backend + hosting), AgentMail, Firecrawl, OpenAI, React + Vite,
+TypeScript. Passwordless email-code auth (Convex Auth + Resend).
 
 ---
 
-## The research behind it (if there's a field for it)
+## The research (if there's a field)
 - Authority — *Context References Over Payloads* — https://doi.org/10.5281/zenodo.21860668
 - Continuity — *Agent-Identity Continuity* — https://doi.org/10.5281/zenodo.22119416
 - Reputation — *Transferable and Local Evidence in Agent Reputation* — https://doi.org/10.5281/zenodo.22133570
 
 ## Try it
-Open https://attestagent.dev, sign in with any email, and click **Load demo
-data** — it seeds a live dashboard through the real pipeline and runs a guided
-tour.
+Open the live URL, sign in with any email, and click **Load demo data** — it
+seeds a live inbox through the real pipeline and runs a guided tour so you can
+watch it hold the scam and answer the real ones.

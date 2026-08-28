@@ -1,97 +1,104 @@
 # Attest — Demo Video Script (~2.5 min)
 
-**Goal:** show the trust layer deciding real messages, live, with no LLM in the
-decision path. Record in one take at https://attestagent.dev. Sign in as
-yourself first and click **Load demo data** BEFORE recording so the board is
-full — then start the tape on the landing page.
+**Framing rule (important):** OPEN CONSUMER-FIRST. This is an everyday app that
+stops you getting scammed by email. Do NOT open with "trust layer for your AI
+agent" — that reads as a developer tool and scores low. Lead with the scam, show
+it get held, THEN reveal the depth.
 
-Aim for 2–3 minutes. Beats below; the *italics* are what to say.
-
----
-
-## 0:00 — The hook (landing page)
-Open **https://attestagent.dev**. Let the rotating node-sphere breathe for a
-beat.
-
-> *"Your AI agent is starting to act for you — reading email, replying, soon
-> paying invoices. The moment it talks to other agents and people, one question
-> decides everything: who is it allowed to trust, and what can it do on your
-> behalf? Attest is the trust layer that answers that."*
-
-Scroll once through **the gate** section (the five-step pipeline + live
-terminal) so they see the checks running.
-
-> *"Every message runs a deterministic gate — continuity, reputation, sensitive
-> info, your policy — first match wins. No LLM in the decision path."*
+**Setup before recording:** sign in on the live URL, click **Load demo data** so
+the inbox is full, then scroll to the top. Record at 1080p, mic ON
+(Cmd+Shift+5 → Options → Microphone). Under 3 minutes. Talk less, click more.
 
 ---
 
-## 0:35 — Sign in
-Click **Sign in** → enter your email → paste the code.
+## 0:00 — The hook: the scam (open here, NOT on the tagline)
+Start on the landing page, then get to the dashboard quickly. Or open directly on
+the dashboard with demo data loaded.
 
-> *"Passwordless email sign-in. Each user gets their own agent inbox."*
-
-(You're already seeded, so the dashboard is full when you land.)
-
----
-
-## 0:55 — The dashboard, via the guided tour
-Click **Take the tour** (or it auto-ran on seed). Walk the spotlight:
-
-- **Conversations** — *"real inbound emails, each authenticated or not on
-  arrival."*
-- **Registry** — *"a live A–F grade for every sending domain, earned from
-  authenticated mail — not SEO, not an allowlist. This is the spine, exposed to
-  agents at /registry/domains."*
-- **Held for you** — *"here's the one that matters —"* (see next beat)
-- **Decision log** — *"every gate decision, with a reason. The agent never acts
-  without a recorded why."*
-- **Trust graph** — orbit it once.
-
----
-
-## 1:35 — The money moment (the SSN hold)
-Point at **offer-onboarding.co → "send your SSN"** in Held-for-you.
-
-> *"A stranger emailed the agent asking for a Social Security Number. A
-> content-based filter might be talked into it. Attest holds it — because the
-> sender never authenticated, and an SSN request is sensitive by rule. It waits
+> *"Your inbox is full of recruiters, vendors, invoices — and every so often,
+> someone asking for something they shouldn't. Most of us can't tell a real
+> message from a convincing fake. Here's an assistant that does that checking
 > for you."*
 
-Then point at **vendor-invoices.net → $5,000 wire**:
+---
 
-> *"Same story — an unverified $5,000 wire. Held. A remembered payment stays
-> capped at the amount you approved."*
+## 0:20 — The money moment: it holds the scam
+Go straight to **Held for you**. Point at **offer-onboarding.co → "send your
+SSN"**.
 
-Contrast with a green one (**stripe.com / vercel.com**):
+> *"A 'new job onboarding' email just asked for my Social Security Number. It
+> looks official. But this assistant held it — because the sender never actually
+> authenticated, and asking for an SSN is sensitive. It's waiting for me instead
+> of handing it over."*
 
-> *"Stripe authenticated — DMARC pass, aligned. The agent answers that one on
-> your behalf automatically."*
+Then **vendor-invoices.net → $5,000 wire**:
+
+> *"Same with a $5,000 wire from an address that can't be verified. Held. It even
+> caps a remembered payment at the amount I approved."*
 
 ---
 
-## 2:05 — The trust graph (the 3D showpiece)
-Expand the trust map (⤢). Orbit it.
+## 0:50 — The contrast: it answers the real ones
+Point at **stripe.com / vercel.com** (green, verified).
 
-> *"This is the agent's live map of who vouches for whom. Verified hubs —
-> Greenhouse, Lever — vouch for the companies that reach you through them, so a
-> company inherits trust the first time it appears. Held senders sit apart."*
+> *"But it's not paranoid. Stripe actually authenticated — DMARC passed, aligned
+> — so the assistant just answers that one on my behalf. Convenience without the
+> risk."*
 
----
+Show the **remember-a-rule** action if handy:
 
-## 2:20 — The close (why it's real)
-> *"Attest is the working implementation of three published papers — authority,
-> continuity, and reputation — each a mechanism wired into this codebase and
-> tested, not just argued. 151 tests. Built on Convex, AgentMail, Firecrawl, and
-> OpenAI. It's live at attestagent.dev."*
-
-End on the landing page or the trust graph.
+> *"Approve something once, and it becomes a standing rule — it handles the next
+> one itself."*
 
 ---
 
-## Recording tips
-- **Seed before you hit record** (Load demo data) so nothing loads mid-take.
-- Full-screen the browser, hide bookmarks bar.
-- If a beat fumbles, keep going — you can trim; a confident single take reads
-  better than a stitched one.
-- Screen-record at 1080p+. QuickTime (Cmd-Shift-5) is fine.
+## 1:15 — How it knows: the trust registry
+Point at the **Registry** (A–F grades).
+
+> *"It's not guessing. Every sender earns a grade from real email
+> authentication — not from how famous the company is. This registry is the
+> engine, and it's even exposed as an API other apps can query."*
+
+---
+
+## 1:35 — The depth reveal (now you can go deeper)
+> *"Under the hood, it never trusts what a message *says* about itself — only
+> what authenticated. Every email runs a deterministic gate: is a trusted sender
+> being impersonated, are they flagged anywhere, is this a sensitive request,
+> what are my rules. First match wins. And there's no AI in that decision — so it
+> can't be talked into a mistake by clever wording."*
+
+Expand the **trust graph** (⤢), orbit it once.
+
+> *"This is the live map of who vouches for whom — verified hubs like Greenhouse
+> and Lever vouch for the companies that reach me through them."*
+
+---
+
+## 2:05 — Why it's credible + the close
+> *"It's built on Convex end to end — the backend, the live updates, auth, the
+> public API. AgentMail runs the real inbox, Firecrawl checks who each sender is,
+> OpenAI reads the emails. And it's the working implementation of three published
+> research papers, with 151 tests behind it."*
+
+> *"It's live — sign in with any email and it'll load a demo inbox and walk you
+> through it. That's Attest: an assistant that refuses to get you scammed."*
+
+End on the dashboard or the trust graph.
+
+---
+
+## Beat checklist (keep it tight, <3 min)
+1. The scam framing (consumer)
+2. SSN held — SLOW DOWN, this is the hook
+3. $5k wire held
+4. Verified Stripe answered (the contrast)
+5. Registry (how it knows)
+6. Depth reveal: gate + no-LLM
+7. Trust graph (orbit)
+8. Sponsors + papers + "it's live"
+
+## Tips
+- **Seed before recording** so nothing loads on camera.
+- **Slow down on the SSN moment** — it's the emotional hook.
+- Confident single take > perfect stitched one. Fumble a line, keep going.
