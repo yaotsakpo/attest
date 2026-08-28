@@ -17,8 +17,9 @@ the dashboard with demo data loaded.
 
 > *"Your inbox is full of recruiters, vendors, invoices — and every so often,
 > someone asking for something they shouldn't. Most of us can't tell a real
-> message from a convincing fake. Here's an assistant that does that checking
-> for you."*
+> message from a convincing fake. And the people most targeted — our parents,
+> our grandparents — can lose their savings to a single one. Here's an assistant
+> that does the checking for them."*
 
 ---
 
@@ -82,7 +83,8 @@ Expand the **trust graph** (⤢), orbit it once.
 > research papers, with 151 tests behind it."*
 
 > *"It's live — sign in with any email and it'll load a demo inbox and walk you
-> through it. That's Attest: an assistant that refuses to get you scammed."*
+> through it. That's Attest: an assistant that refuses to get you — or the people
+> you love — scammed."*
 
 End on the dashboard or the trust graph.
 

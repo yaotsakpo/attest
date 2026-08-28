@@ -10,9 +10,9 @@ vibeapps.dev form; trim to its limits.
 **Attest**
 
 ## Tagline (one line)
-An assistant on your inbox that refuses to get you scammed — it verifies who
-actually sent each email and holds anything sketchy (an SSN request, a fake
-invoice, an unverified wire) until you say yes.
+An assistant on your inbox that refuses to get you — or your parents — scammed.
+It verifies who actually sent each email and holds anything sketchy (an SSN
+request, a fake invoice, an unverified wire) until someone says yes.
 
 ## Links
 - **Live app (convex.site):** https://dynamic-egret-864.convex.site
@@ -26,7 +26,10 @@ invoice, an unverified wire) until you say yes.
 ## What it does (the everyday-app pitch — lead with this)
 Everyone's inbox is full of recruiters, vendors, invoices, and the occasional
 stranger asking for something sensitive. Most of us can't tell a real message
-from a convincing fake — that's how phishing works.
+from a convincing fake — that's how phishing works. And for the people most
+targeted by it — **older parents and less technical family members** — a single
+convincing fake can cost them their savings. Email fraud against seniors alone is
+a multi-billion-dollar problem every year.
 
 Attest is an assistant that sits on your inbox and does the checking for you. For
 every email it asks one question: **did this actually come from who it claims?**
@@ -34,10 +37,16 @@ It grades every sender from real email authentication (DMARC), auto-handles the
 ones it can verify, and **holds** anything it can't stand behind — a request for
 your Social Security Number, a $5,000 wire from an address that never
 authenticated, a "confirm your bank details" onboarding email. Those wait for
-you. Approve one and it remembers the rule, so it handles the next one itself.
+you (or, set up for a parent, for the person watching out for them). Approve one
+and it remembers the rule, so it handles the next one itself.
 
 You get the convenience of an assistant that answers routine mail, without the
-risk of it being talked into handing over your details by clever wording.
+risk of it — or someone you love — being talked into handing over details by
+clever wording.
+
+**Highest-value use case:** a caregiver setting it up to guard an aging parent's
+inbox. The parent keeps using email normally; the scam gets held before it ever
+reaches them.
 
 ## The depth underneath (the "how" — reveal after the hook)
 Attest never trusts what a message *says* about itself; it derives trust from the
