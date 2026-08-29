@@ -127,18 +127,21 @@ function Hero({ onSignIn }: { onSignIn: () => void }) {
       <NodeSphere />
       <div className="lp-hero-copy">
         <h1 className="lp-h1">
-          A stranger just emailed your agent
+          A recruiter emailed your agent for your salary.
           <br />
-          asking for your SSN.
+          A stranger emailed for your SSN.
           <br />
-          <span className="lp-h1-accent">Attest is why it said no.</span>
+          <span className="lp-h1-accent">
+            Attest is why it said yes to one and no to the other.
+          </span>
         </h1>
         <p className="lp-lede">
-          Your agent is starting to act for you. Reading mail, replying, soon
-          paying invoices. The moment it talks to other agents and people, one
-          question decides everything: who is it allowed to trust, and what can
-          it do on your behalf? Attest answers it, deterministically, with no
-          LLM in the decision path.
+          Your AI agent is starting to run your inbox — applying to jobs,
+          replying to recruiters, paying small invoices, sharing your details.
+          The moment it acts for you, one question decides everything: who is it
+          allowed to trust, and what can it do on your behalf? Attest answers it
+          per message, deterministically, with no LLM in the decision path — so
+          it auto-handles the verified ones and holds the rest for you.
         </p>
         <div className="lp-cta-row">
           <button className="btn btn-primary lp-cta-primary" onClick={onSignIn}>

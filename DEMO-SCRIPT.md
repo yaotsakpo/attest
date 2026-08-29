@@ -15,11 +15,15 @@ the inbox is full, then scroll to the top. Record at 1080p, mic ON
 Start on the landing page, then get to the dashboard quickly. Or open directly on
 the dashboard with demo data loaded.
 
-> *"Your inbox is full of recruiters, vendors, invoices — and every so often,
-> someone asking for something they shouldn't. Most of us can't tell a real
-> message from a convincing fake. And the people most targeted — our parents,
-> our grandparents — can lose their savings to a single one. Here's an assistant
-> that does the checking for them."*
+> *"More and more of us are letting an AI agent run our inbox — especially
+> job-hunting: it applies, it replies to recruiters, it shares your details. The
+> problem is your agent can't tell a real recruiter from a scam any better than
+> you can. Here's the assistant that does — it says yes to the verified ones and
+> no to the fakes."*
+
+(Everyday, agent-native, and it's who actually uses agents today. Vulnerable
+users — elderly parents, anyone who can't easily spot a fake — are the same
+story: the assistant does the checking they can't.)
 
 ---
 
@@ -39,17 +43,24 @@ Then **vendor-invoices.net → $5,000 wire**:
 
 ---
 
-## 0:50 — The contrast: it answers the real ones
-Point at **stripe.com / vercel.com** (green, verified).
+## 0:50 — The contrast: it says YES to the real ones (the payoff)
+This is the other half of the story — it doesn't just block, it *acts* when it's
+safe. Point at the verified ones.
 
-> *"But it's not paranoid. Stripe actually authenticated — DMARC passed, aligned
-> — so the assistant just answers that one on my behalf. Convenience without the
-> risk."*
+**Stripe** (verified recruiter asking for availability + salary range):
+> *"Here's the payoff. Stripe actually authenticated — DMARC passed, aligned. It
+> asked for my availability and salary range. Normally you'd never let an agent
+> answer that automatically — but I approved 'share these with verified
+> recruiters' once, so the assistant just replied for me. Info I'd otherwise
+> retype on every single application, handled."*
 
-Show the **remember-a-rule** action if handy:
+**Vercel** ($20 verified invoice):
+> *"Same with a real $20 invoice from a verified sender — under the limit I set,
+> so it just paid it. But the $5,000 wire from an address it couldn't verify? It
+> held that. Verified and small: yes. Unverified or over the limit: no."*
 
-> *"Approve something once, and it becomes a standing rule — it handles the next
-> one itself."*
+> *"That's the whole point — you can finally let an agent hold your details and
+> act for you, because it only says yes to senders it can prove are real."*
 
 ---
 
@@ -80,11 +91,11 @@ Expand the **trust graph** (⤢), orbit it once.
 > *"It's built on Convex end to end — the backend, the live updates, auth, the
 > public API. AgentMail runs the real inbox, Firecrawl checks who each sender is,
 > OpenAI reads the emails. And it's the working implementation of three published
-> research papers, with 151 tests behind it."*
+> research papers, with 156 tests behind it."*
 
 > *"It's live — sign in with any email and it'll load a demo inbox and walk you
-> through it. That's Attest: an assistant that refuses to get you — or the people
-> you love — scammed."*
+> through it. That's Attest: it lets your agent act for you, and says yes only to
+> the senders it can prove are real."*
 
 End on the dashboard or the trust graph.
 

@@ -10,9 +10,9 @@ vibeapps.dev form; trim to its limits.
 **Attest**
 
 ## Tagline (one line)
-An assistant on your inbox that refuses to get you — or your parents — scammed.
-It verifies who actually sent each email and holds anything sketchy (an SSN
-request, a fake invoice, an unverified wire) until someone says yes.
+Let your AI agent run your inbox without getting scammed. Attest verifies who
+really sent each email — so it auto-handles the verified recruiter and the $20
+invoice, and holds the SSN request and the $5k wire for you.
 
 ## Links
 - **Live app (convex.site):** https://dynamic-egret-864.convex.site
@@ -24,29 +24,31 @@ request, a fake invoice, an unverified wire) until someone says yes.
 ---
 
 ## What it does (the everyday-app pitch — lead with this)
-Everyone's inbox is full of recruiters, vendors, invoices, and the occasional
-stranger asking for something sensitive. Most of us can't tell a real message
-from a convincing fake — that's how phishing works. And for the people most
-targeted by it — **older parents and less technical family members** — a single
-convincing fake can cost them their savings. Email fraud against seniors alone is
-a multi-billion-dollar problem every year.
+More and more people are letting an AI agent run their inbox — most visibly a job
+search: the agent applies, replies to recruiters, shares your details, and
+handles the back-and-forth. The catch: your agent can't tell a real recruiter
+from a scam any better than you can, and a job hunt is exactly where you're asked
+for sensitive info (salary, availability, references, and yes — SSN for
+background checks) over and over.
 
-Attest is an assistant that sits on your inbox and does the checking for you. For
-every email it asks one question: **did this actually come from who it claims?**
-It grades every sender from real email authentication (DMARC), auto-handles the
-ones it can verify, and **holds** anything it can't stand behind — a request for
-your Social Security Number, a $5,000 wire from an address that never
-authenticated, a "confirm your bank details" onboarding email. Those wait for
-you (or, set up for a parent, for the person watching out for them). Approve one
-and it remembers the rule, so it handles the next one itself.
+Attest is the assistant that does the telling-apart. For every email it asks:
+**did this actually come from who it claims?** It grades every sender from real
+email authentication (DMARC), and then it decides both ways:
 
-You get the convenience of an assistant that answers routine mail, without the
-risk of it — or someone you love — being talked into handing over details by
-clever wording.
+- **YES** — a *verified* recruiter asks for your availability and salary range?
+  You approved sharing those with verified senders once, so it just replies for
+  you. A *verified* $20 invoice under your limit? It pays it. This is the payoff:
+  you can finally let an agent hold your details and act for you.
+- **NO** — an SSN request? Held — always, even from a verified sender (sensitive
+  PII can never be auto-shared). A $5,000 wire from an address that never
+  authenticated? Held. A "confirm your bank details" email? Held.
 
-**Highest-value use case:** a caregiver setting it up to guard an aging parent's
-inbox. The parent keeps using email normally; the scam gets held before it ever
-reaches them.
+The difference is provable: the exact same info request from an *unverified*
+sender holds. Verification is what unlocks the yes.
+
+**Also protects the most vulnerable:** set it up for an aging parent or anyone
+who can't easily spot a fake, and it does the checking they can't — the scam gets
+held before it reaches them, while their real mail flows.
 
 ## The depth underneath (the "how" — reveal after the hook)
 Attest never trusts what a message *says* about itself; it derives trust from the
@@ -61,7 +63,7 @@ mail (not SEO), and a trust graph shows how verified hubs (Greenhouse, Lever)
 vouch for the companies that reach you through them.
 
 It's the working implementation of three published papers (authority, continuity,
-reputation), each a mechanism wired into the codebase and tested — 151 unit +
+reputation), each a mechanism wired into the codebase and tested — 156 unit +
 integration tests, including ground-truth gates and cross-tenant isolation.
 
 ---

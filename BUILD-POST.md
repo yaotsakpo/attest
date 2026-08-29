@@ -26,7 +26,7 @@ like/reply.
 > companies that reach you through them — shown as a live 3D trust graph.
 
 > 3/ Under the hood it's the working implementation of 3 published papers
-> (authority, continuity, reputation) + 151 tests. The whole trust engine runs on
+> (authority, continuity, reputation) + 156 tests. The whole trust engine runs on
 > Convex — queries, mutations, live updates, auth, a public /registry API.
 
 > 4/ Sign in with any email and hit "Load demo data" — it seeds a real inbox and
@@ -50,7 +50,7 @@ like/reply.
 > It's built end-to-end on Convex (backend, live updates, auth, a public API),
 > with AgentMail running the real inbox, Firecrawl checking who each sender is,
 > and OpenAI reading the mail. It's also the working implementation of three
-> published research papers, with 151 tests behind it.
+> published research papers, with 156 tests behind it.
 >
 > Live — sign in with any email and it'll walk you through a demo:
 > https://dynamic-egret-864.convex.site

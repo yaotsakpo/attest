@@ -69,10 +69,21 @@ const SCENARIOS: Array<{
   },
   {
     from: "talent@stripe.com",
-    subject: "Stripe — moving you to a first-round screen",
-    body: "Great news — we'd like to schedule a 30-minute intro call this week. Are you available Thursday or Friday afternoon? Looking forward to it.",
-    // aligned DMARC pass => VERIFIED
+    subject: "Stripe — quick details before we schedule",
+    body: "Great news — before we book your first-round screen, can you confirm your general availability next week and your expected salary range? Nothing sensitive, just so we line up the right panel.",
+    // aligned DMARC pass => VERIFIED, A-grade. Non-sensitive info request +
+    // your 'share with verified recruiters' rule => AUTO-ANSWERS (a YES). The
+    // agent replies with the availability/range you approved once.
     auth: "dmarc=pass; spf=pass; header.from=stripe.com",
+  },
+  {
+    from: "billing@vercel.com",
+    subject: "Vercel Pro — invoice #A-2231 ($20.00)",
+    body: "Your monthly Vercel Pro subscription invoice is ready: $20.00, due now. Thanks for building with us.",
+    // aligned DMARC pass => VERIFIED. $20 is at/under your $200 verified-payment
+    // limit => AUTO-PAYS (a YES). The same charge from an unverified sender, or
+    // over the limit, would hold.
+    auth: "dmarc=pass; spf=pass; header.from=vercel.com",
   },
   {
     from: "recruiter@acme.com",
@@ -121,6 +132,8 @@ export const seedPolicyFor = internalMutation({
   returns: v.null(),
   handler: async (ctx, { userId }): Promise<null> => {
     const rules = [
+      // YES on small verified payments — auto-pay an invoice at/under $200 from a
+      // verified sender. Anything larger, or unverified, still holds.
       {
         id: "demo_pay",
         action: "payment" as const,
@@ -128,10 +141,17 @@ export const seedPolicyFor = internalMutation({
         requireVerified: true,
         decision: "allow" as const,
       },
+      // YES on sharing NON-sensitive info (availability, salary range, a
+      // reference) with A-grade verified recruiters — the info you approved once,
+      // reused for you. NOTE: SSN/bank is sensitive PII and can NEVER auto-share
+      // (the gate's containment guarantee overrides any allow rule), so this only
+      // ever releases the ordinary stuff you'd repeat on every application.
       {
         id: "demo_share",
         action: "share_info" as const,
-        decision: "hold" as const,
+        requireVerified: true,
+        minGrade: "A" as const,
+        decision: "allow" as const,
       },
       {
         id: "demo_reply",

@@ -82,7 +82,7 @@ inbound email ─▶ AgentMail webhook ─▶ httpAction (resolve inbox owner)
 
 ## Tests
 
-151 unit + integration tests (`npx vitest run`), including ground-truth gates: a verified $200 invoice auto-answers, a $5,000 wire holds, a remembered payment stays capped at the approved amount, and cross-tenant isolation (user B never sees user A's data).
+156 unit + integration tests (`npx vitest run`), including ground-truth gates: a verified $200 invoice auto-answers, a $5,000 wire holds, a remembered payment stays capped at the approved amount, and cross-tenant isolation (user B never sees user A's data).
 
 ## Run locally
 
