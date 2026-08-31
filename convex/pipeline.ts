@@ -5,13 +5,27 @@ import type { Doc, Id } from "./_generated/dataModel";
 import { gradeFor } from "./lib/grade";
 import { domainFor } from "./lib/trustScore";
 import { detectSensitiveRequest } from "./lib/disclosureGate";
-import { decideAction } from "./lib/policyEngine";
+import { decideAction, detectPaymentRequest } from "./lib/policyEngine";
+import {
+  resolveRevocation,
+  identityRevokedFor,
+} from "./lib/revocationStatus";
 import { tierFor } from "./lib/membership";
 import { continuityVerdict } from "./lib/continuityState";
 import { aggregateClassified, type ClassifiedEvent } from "./lib/reputationClass";
 import { deriveSeed } from "./lib/continuity";
 import { readToken } from "./lib/continuityToken";
 import { acceptStep, type ReplayWindow } from "./lib/replayWindow";
+
+// Identity revocation TTL: how old a cached revocation status may be before it
+// is treated as unknown (and a consequential action fails closed). This is a
+// DEPLOYMENT PARAMETER: a tight TTL bounds evasion (a measured attack), a loose
+// TTL favours availability. The tension is well-established in the browser-PKI
+// literature (not novel to us — see revocationStatus.ts for the honest
+// attribution). 15 minutes is a documented middle default. We expose statusAge
+// in the audit trail so the actual propagation window stays observable rather
+// than assumed.
+const IDENTITY_REVOCATION_TTL_MS = 15 * 60_000;
 
 type Stage = Doc<"applications">["stage"];
 
@@ -88,6 +102,18 @@ export const applyExtraction = internalMutation({
       isNetworkMember: isMember,
     });
 
+    // PER-AGENT KEYING (spec §7): if this counterpart has a known agent identity
+    // on file, continuity + reputation key by that finer agentId, not the domain.
+    // Resolve it BEFORE the continuity block so the lookup uses the right key.
+    // Non-destructive: absent an identity, continuityAgentId is null and keying
+    // falls back to the domain exactly as before (existing seeds untouched).
+    const idForKey = await ctx.db
+      .query("agentIdentities")
+      .withIndex("by_agent", (q) => q.eq("agentId", domain))
+      .unique()
+      .catch(() => null);
+    const continuityAgentId: string | null = idForKey?.agentId ?? null;
+
     // CONTINUITY (third check, impersonation axis): only applies to in-network
     // counterparts we've seeded — that's where both ends speak the protocol and a
     // message can carry the forward-secret response. For ordinary email there's
@@ -99,13 +125,24 @@ export const applyExtraction = internalMutation({
     // reputation only through the querier's own view, never as a network event.
     let localAbsent = 0;
     if (isMember) {
-      const rec = await ctx.db
-        .query("continuity")
-        .withIndex("by_user_and_counterpart", (q) =>
-          q.eq("userId", ev.userId).eq("counterpart", domain),
-        )
-        .unique()
-        .catch(() => null);
+      // Agent-keyed row first (finer key), then legacy domain-keyed fallback.
+      const rec =
+        (continuityAgentId
+          ? await ctx.db
+              .query("continuity")
+              .withIndex("by_user_and_agent", (q) =>
+                q.eq("userId", ev.userId).eq("agentId", continuityAgentId),
+              )
+              .unique()
+              .catch(() => null)
+          : null) ??
+        (await ctx.db
+          .query("continuity")
+          .withIndex("by_user_and_counterpart", (q) =>
+            q.eq("userId", ev.userId).eq("counterpart", domain),
+          )
+          .unique()
+          .catch(() => null));
       // REAL cryptographic check: read the token and verify it against the
       // stored seed at the step we expect. Marker-presence is NOT enough — an
       // impostor can include a well-formed token, but without the seed it won't
@@ -158,6 +195,7 @@ export const applyExtraction = internalMutation({
         if (verdict.status === "confirmed") {
           await ctx.db.insert("reputationEvents", {
             counterpart: domain,
+            agentId: continuityAgentId ?? undefined,
             kind: "continuity_confirmed",
             userId: ev.userId,
             at: Date.now(),
@@ -167,6 +205,7 @@ export const applyExtraction = internalMutation({
           // when provable, so the PERSISTED, network-propagated kind is proof.
           await ctx.db.insert("reputationEvents", {
             counterpart: domain,
+            agentId: continuityAgentId ?? undefined,
             kind: "takeover_proven",
             userId: ev.userId,
             at: Date.now(),
@@ -205,6 +244,34 @@ export const applyExtraction = internalMutation({
     const reputation = aggregateClassified(classified, { self: ev.userId });
     const reputationCompromised = reputation.standing === "compromised";
 
+    // IDENTITY (third axis, spec §6): resolve the counterpart's agent identity,
+    // if one is on file, and compute the ONE thing the gate consumes from it —
+    // identityRevoked. Identity contributes display/audit + this single hold
+    // condition; it can NEVER lift a hold. A "consequential" action (payment or
+    // a sensitive-info request) fails closed on unknown revocation status; a
+    // routine reply does not, so a merely-stale identity doesn't block low-stakes
+    // mail. The revocation policy is ttl_bounded (see revocationStatus.ts for why
+    // fail_closed is dominated). Pre-migration, identities are keyed by domain.
+    let identityRevoked = false;
+    let identityStatusAgeMs: number | undefined;
+    const identityRow = await ctx.db
+      .query("agentIdentities")
+      .withIndex("by_agent", (q) => q.eq("agentId", domain))
+      .unique()
+      .catch(() => null);
+    if (identityRow) {
+      const consequential =
+        sensitiveRequest || detectPaymentRequest(text).isPayment;
+      const rev = resolveRevocation({
+        cachedStatus: identityRow.status,
+        statusCheckedAt: identityRow.statusCheckedAt,
+        now: Date.now(),
+        ttlMs: IDENTITY_REVOCATION_TTL_MS,
+      });
+      identityRevoked = identityRevokedFor(rev, consequential);
+      identityStatusAgeMs = rev.statusAgeMs;
+    }
+
     const decision = decideAction({
       grade,
       senderVerified: ev.senderVerified,
@@ -215,11 +282,13 @@ export const applyExtraction = internalMutation({
       tier,
       continuityHold,
       reputationFlagged: reputationCompromised,
+      identityRevoked,
     });
     await ctx.db.patch("events", args.eventId, {
       sensitiveRequest,
       gateAction: decision.action,
       gateReason: decision.reason,
+      identityStatusAgeMs,
     });
 
     // SEED ON TRUST: if we just decided to trust an in-network counterpart and
@@ -232,22 +301,38 @@ export const applyExtraction = internalMutation({
       !continuityHold &&
       !reputationCompromised
     ) {
-      const already = await ctx.db
-        .query("continuity")
-        .withIndex("by_user_and_counterpart", (q) =>
-          q.eq("userId", ev.userId).eq("counterpart", domain),
-        )
-        .unique()
-        .catch(() => null);
+      // Agent-keyed row first, then legacy domain-keyed, so we never double-seed
+      // (and never overwrite an existing seed — the seed is sacred).
+      const already =
+        (continuityAgentId
+          ? await ctx.db
+              .query("continuity")
+              .withIndex("by_user_and_agent", (q) =>
+                q.eq("userId", ev.userId).eq("agentId", continuityAgentId),
+              )
+              .unique()
+              .catch(() => null)
+          : null) ??
+        (await ctx.db
+          .query("continuity")
+          .withIndex("by_user_and_counterpart", (q) =>
+            q.eq("userId", ev.userId).eq("counterpart", domain),
+          )
+          .unique()
+          .catch(() => null));
       if (!already) {
+        // Derive the seed over the finer key when we have one, so two agents at
+        // the same domain get distinct seeds.
+        const keyForSeed = continuityAgentId ?? domain;
         const seed = await deriveSeed(
           "attest-agent",
-          domain,
-          `${ev.userId}:${domain}:trust-established`,
+          keyForSeed,
+          `${ev.userId}:${keyForSeed}:trust-established`,
         );
         await ctx.db.insert("continuity", {
           userId: ev.userId,
           counterpart: domain,
+          agentId: continuityAgentId ?? undefined,
           seed,
           seeded: true,
           counter: 0,

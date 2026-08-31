@@ -72,6 +72,11 @@ export default defineSchema({
       v.union(v.literal("auto_answer"), v.literal("hold_for_approval")),
     ),
     gateReason: v.optional(v.string()),
+    // Age (ms) of the counterpart's cached identity-revocation status at the
+    // moment the gate decided. Recorded so the revocation-propagation window
+    // stays OBSERVABLE (spec §5: emit the age at decision time; do not optimise
+    // the delay away before it is measured). Absent when no identity on file.
+    identityStatusAgeMs: v.optional(v.number()),
     // For held items: has the user resolved it? (approved to release / dismissed)
     gateResolved: v.optional(
       v.union(v.literal("approved"), v.literal("dismissed")),
@@ -139,6 +144,38 @@ export default defineSchema({
   // thereafter every message must carry the forward-secret response. `seed` is
   // the shared secret; `counter` is the ratchet step; `status` is the last
   // verdict. See convex/lib/continuity.ts (crypto) + continuityState.ts (machine).
+  // AGENT IDENTITY (third axis: accountability). Answers "who is this agent
+  // acting for, and what is it authorised to do?" — distinct from continuity
+  // (still the same principal?) and reputation (should a report travel?).
+  // See docs/specs/agent-identity-layer.md.
+  //
+  // NON-NEGOTIABLE: this object carries ZERO authentication weight (spec §2 /
+  // RFC 6749 §2.2). Every field is public. Possession of it grants nothing. It
+  // may be displayed, logged, resolved, and used to scope a lookup — NEVER an
+  // input to an authorisation decision (enforced by tests). `scope` is a
+  // DECLARED label for humans/logs; it never widens what the agent may do.
+  agentIdentities: defineTable({
+    agentId: v.string(), // stable, public, opaque. NOT derived from owner/address.
+    ownerId: v.string(), // resolves to an accountable PRINCIPAL (org/role/person), opaque
+    scope: v.union(
+      v.literal("read_only"),
+      v.literal("correspond"),
+      v.literal("transact"),
+      v.literal("administer"),
+    ),
+    issuer: v.string(), // who attests the binding: "self" or a registry id
+    issuedAt: v.number(),
+    issuerSignature: v.string(), // binds the fields above; grants nothing by itself
+    revocationRef: v.string(), // where current status is checked
+    // Cached revocation status. AUTHORITATIVE answer comes from revocationRef;
+    // a cached value is stale by construction (spec §5). `statusCheckedAt` lets
+    // the gate expose staleness/age at decision time.
+    status: v.union(v.literal("active"), v.literal("revoked")),
+    statusCheckedAt: v.number(),
+  })
+    .index("by_agent", ["agentId"])
+    .index("by_owner", ["ownerId"]),
+
   continuity: defineTable({
     userId: v.id("users"),
     counterpart: v.string(), // the counterpart domain we track continuity for
@@ -159,9 +196,18 @@ export default defineSchema({
       v.literal("unproven_gap"), // missing token: held locally, not propagated
     ),
     updatedAt: v.number(),
+    // PER-AGENT KEYING (spec §7), migrated NON-DESTRUCTIVELY: the optional
+    // agentId is the finer key. Existing rows have only `counterpart` (domain)
+    // and are never rewritten — reads resolve by agentId first, then fall back
+    // to domain (see continuityKey.ts / the pipeline lookup). This closes the
+    // "one compromised mailbox flags a whole domain" limitation both papers
+    // record, without ever dropping a seed (a lost seed forces re-establishment,
+    // which is the flow an attacker wants).
+    agentId: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
-    .index("by_user_and_counterpart", ["userId", "counterpart"]),
+    .index("by_user_and_counterpart", ["userId", "counterpart"])
+    .index("by_user_and_agent", ["userId", "agentId"]),
 
   // REPUTATION events — the third axis (portable, attestable standing). Each row
   // is an OBSERVED, checkable fact about a counterpart's conduct (a continuity
@@ -177,8 +223,12 @@ export default defineSchema({
     ),
     userId: v.id("users"), // who observed it (provenance of the observation)
     at: v.number(),
+    // Per-agent keying (spec §7), same non-destructive migration as continuity:
+    // optional finer key; existing domain-keyed rows keep working via fallback.
+    agentId: v.optional(v.string()),
   })
-    .index("by_counterpart", ["counterpart"]),
+    .index("by_counterpart", ["counterpart"])
+    .index("by_agent", ["agentId"]),
 
   // The user's POLICY: the structured ruleset their agent obeys before acting on
   // their behalf. Free-form to configure in the panel, structured to store and

@@ -142,6 +142,13 @@ export interface DecideActionInput {
   // observed a takeover of this counterpart — even if THIS user didn't catch it.
   // Reputation earned elsewhere protects you here: hold until a human re-trusts.
   reputationFlagged?: boolean;
+  // IDENTITY override (accountability axis, spec §6). True when the counterpart's
+  // agent identity is known-revoked, OR its revocation status is unknown and this
+  // action is consequential (fail closed). This is the ONLY way identity touches
+  // the gate: it can add a hold, never lift one. Sits BELOW continuity and
+  // reputation deliberately — a taken-over agent with valid, active paperwork is
+  // more dangerous than an agent whose identity merely lapsed.
+  identityRevoked?: boolean;
 }
 
 // Map an incoming email to the action the user's policy reasons about. Payment
@@ -183,6 +190,19 @@ export function decideAction(input: DecideActionInput): GateDecision {
       action: "hold_for_approval",
       reason:
         "This counterpart was flagged for a suspected takeover elsewhere in the network. Holding until you re-establish trust.",
+    };
+  }
+
+  // IDENTITY OVERRIDE (accountability axis, spec §6): the counterpart's agent
+  // identity is known-revoked, or its status is unknown and the action is
+  // consequential (fail closed). Holds below continuity/reputation. Identity has
+  // NO positive authority: this branch can only ADD a hold. Nothing about a
+  // valid, active identity is ever read here to make the gate more permissive.
+  if (input.identityRevoked) {
+    return {
+      action: "hold_for_approval",
+      reason:
+        "This counterpart's agent identity is revoked or its status can't be confirmed. Holding until you re-establish trust.",
     };
   }
 
