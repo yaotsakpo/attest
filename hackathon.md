@@ -12,7 +12,7 @@
 - **Auth:** Convex Auth, passwordless email-code sign-in (no password to forget/reset), per-user data isolation enforced server-side
 - **Sponsors (all do real work):** Convex (backend/live/auth/hosting), AgentMail (per-user inbox in/out, real inbound webhook + outbound replies), Firecrawl (v2 scrape enriches each counterpart domain), OpenAI (typed email extraction; keyless rule-based fallback)
 - **AI models:** OpenAI gpt-4o-mini (email extraction; falls back to a keyless rule-based extractor)
-- **Tests:** 188 unit + integration (npx vitest run), incl. ground-truth gates + cross-tenant isolation
+- **Tests:** 193 unit + integration (npx vitest run), incl. ground-truth gates + cross-tenant isolation
 - **Started:** 2026-08-26T01:32:33Z
 - **Last updated:** 2026-08-31
 
@@ -68,3 +68,10 @@ Added a 1200×630 OG image and social meta (attestagent.dev/og.png) so the submi
 
 ### 2026-08-31 - 8bde4e0 - agent-identity layer (the third trust axis)
 Added the accountability axis on top of authority (predicate-scoped) and continuity (takeover detection): a signed, zero-authority agent identity. `agentIdentities` table + Ed25519 issuer-signed bindings (agentId, ownerId, scope, revocationRef) that VERIFY but grant nothing. The zero-authority invariant is enforced by test: a fully valid, widest-scope identity still authorizes nothing on its own; the only bridge from identity into a decision is a revocation verdict, and it can add a hold, never lift one. Gate ordering: continuity to reputation to identity to sensitive-containment to policy. Non-destructive per-agent keying (spec §7): continuity + reputation rows gain an optional agentId keyed agent-first with domain fallback, so a known agent is tracked distinctly without ever disturbing the sacred seed. Deployed to Convex prod (new indexes: agentIdentities.by_agent/by_owner, continuity.by_user_and_agent, reputationEvents.by_agent). 188 tests green (was 156).
+
+### 2026-08-31 - 17ac45a - identity made visible + editable + scopes are a SET
+The identity layer was backend-only; made it a real product surface end to end.
+- **Scope is a SET, not one value.** An agent reads AND replies AND may transact, so scope is now multi-select capabilities (read_only / correspond / transact / administer) across the whole stack: schema `scopes` array, the Ed25519 binding signs the canonical sorted set, demo + registry + UI all consistent.
+- **See a counterpart's identity.** The trust registry ("Who my agent trusts") gains an Identity column: each counterpart's declared scopes plus a resolved revocation chip (active / status stale / revoked). The demo seeds identities (one deliberately stale) so it's populated for a judge.
+- **Declare your OWN agent's identity.** The Agent drawer gains an "Agent identity" editor: scope checkboxes, issuer shown plainly as "self" (no CA network yet), an optional revocation URL. `profiles.myIdentity` / `profiles.setIdentity`, scopes normalized (deduped, canonical order, unknown rejected).
+- **Demo button toggles Load ⇄ Clear** (one button, derived from real data so it survives a reload), using the existing reset. Deployed to both convex.site and attestagent.dev. 193 tests green.

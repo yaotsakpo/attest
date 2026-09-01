@@ -345,6 +345,13 @@ const MECHANISMS = [
     verdict: "verified",
     Icon: GlyphReputation,
   },
+  {
+    tag: "04 / identity",
+    title: "An accountable name, not a permission",
+    body: "Each agent can declare who it acts for and what it does, as a set of capabilities anyone can see. It is zero-authority by design: the declaration is shown and logged, never used to grant access. You declare your own agent's identity, and you see the identity every counterpart declares.",
+    verdict: "verified",
+    Icon: GlyphPolicy,
+  },
 ];
 
 function Mechanisms() {
@@ -352,7 +359,7 @@ function Mechanisms() {
     <section className="lp-section" id="how">
       <div className="lp-section-head">
         <span className="lp-kicker">how it works</span>
-        <h2 className="lp-h2">Three mechanisms, one principle</h2>
+        <h2 className="lp-h2">Four mechanisms, one principle</h2>
         <p className="lp-section-sub">
           Each one is a published paper wired into the codebase and tested, not
           merely argued.
