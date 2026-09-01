@@ -1,4 +1,4 @@
-import { useAction } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "../convex/_generated/api";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import "./DemoTour.css";
@@ -44,17 +44,23 @@ const STEPS: Step[] = [
 
 export function DemoTour() {
   const seed = useAction(api.demo.seed);
+  const reset = useMutation(api.demo.reset);
   const [seeding, setSeeding] = useState(false);
+  const [clearing, setClearing] = useState(false);
   const [tour, setTour] = useState(false);
   const [stepIdx, setStepIdx] = useState(0);
-  const [seeded, setSeeded] = useState(false);
+
+  // Derive presence of demo data from the actual board, not local state, so the
+  // button is correct after a reload: data present -> "Clear", empty -> "Load".
+  const apps = useQuery(api.board.myApplications);
+  const hasData = (apps?.length ?? 0) > 0;
+  const busy = seeding || clearing;
 
   async function loadDemo() {
-    if (seeding) return;
+    if (busy) return;
     setSeeding(true);
     try {
       await seed({});
-      setSeeded(true);
       // give the reactive queries a beat to paint the seeded panels, then tour
       setTimeout(() => {
         setStepIdx(0);
@@ -67,16 +73,35 @@ export function DemoTour() {
     }
   }
 
+  async function clearDemo() {
+    if (busy) return;
+    setClearing(true);
+    setTour(false);
+    try {
+      await reset({});
+    } catch (e) {
+      console.error("demo clear failed", e);
+    } finally {
+      setClearing(false);
+    }
+  }
+
   return (
     <>
       <button
         className="btn btn-primary demo-btn"
-        onClick={loadDemo}
-        disabled={seeding}
+        onClick={hasData ? clearDemo : loadDemo}
+        disabled={busy}
       >
-        {seeding ? "Loading…" : seeded ? "Replay demo" : "Load demo data"}
+        {seeding
+          ? "Loading…"
+          : clearing
+            ? "Clearing…"
+            : hasData
+              ? "Clear demo data"
+              : "Load demo data"}
       </button>
-      {seeded && !tour && (
+      {hasData && !tour && (
         <button
           className="btn btn-ghost demo-tour-btn"
           onClick={() => {
