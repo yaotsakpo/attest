@@ -1,7 +1,20 @@
-import { internalQuery, internalMutation, query } from "./_generated/server";
+import {
+  internalQuery,
+  internalMutation,
+  mutation,
+  query,
+} from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc, Id } from "./_generated/dataModel";
+import { normalizeScopes, type AgentScope } from "./lib/agentScopes";
+
+const scopeValidator = v.union(
+  v.literal("read_only"),
+  v.literal("correspond"),
+  v.literal("transact"),
+  v.literal("administer"),
+);
 
 // The signed-in user's own agent inbox (public, auth-scoped). Returns null when
 // they haven't connected one yet — the UI shows a "Connect inbox" prompt.
@@ -21,6 +34,61 @@ export const myInbox = query({
     return p
       ? { email: p.agentmailInbox, inboxId: p.agentmailInboxId }
       : null;
+  },
+});
+
+// The signed-in user's OWN agent identity (accountability axis) — what THEY
+// declare their agent does, shown to counterparts. Issued by "self" (there is
+// no CA network yet), so issuer isn't stored. Auth-scoped; returns empty scopes
+// when nothing is declared.
+export const myIdentity = query({
+  args: {},
+  returns: v.object({
+    scopes: v.array(scopeValidator),
+    revocationRef: v.union(v.string(), v.null()),
+  }),
+  handler: async (
+    ctx,
+  ): Promise<{ scopes: AgentScope[]; revocationRef: string | null }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return { scopes: [], revocationRef: null };
+    const p = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    return {
+      scopes: (p?.identityScopes ?? []) as AgentScope[],
+      revocationRef: p?.identityRevocationRef ?? null,
+    };
+  },
+});
+
+// Declare / update the user's own agent identity. Scopes are normalized (deduped
+// + canonical order), unknown scopes rejected. An empty scopes array + empty
+// revocation clears the declaration. Zero-authority: this is a DECLARATION, it
+// never changes what the agent is permitted to do.
+export const setIdentity = mutation({
+  args: {
+    scopes: v.array(scopeValidator),
+    revocationRef: v.union(v.string(), v.null()),
+  },
+  returns: v.null(),
+  handler: async (ctx, args): Promise<null> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("not signed in");
+    const p = await ctx.db
+      .query("profiles")
+      .withIndex("by_user", (q) => q.eq("userId", userId))
+      .first();
+    if (!p) throw new Error("connect an agent inbox first");
+    // normalizeScopes also guards against anything the validator somehow lets by
+    const scopes = normalizeScopes(args.scopes);
+    const ref = args.revocationRef?.trim();
+    await ctx.db.patch(p._id, {
+      identityScopes: scopes,
+      identityRevocationRef: ref ? ref : undefined,
+    });
+    return null;
   },
 });
 

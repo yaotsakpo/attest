@@ -14,6 +14,23 @@ export default defineSchema({
     agentmailInbox: v.string(), // "name@agentmail.to" — the apply-with address
     agentmailInboxId: v.string(),
     searchProfile: v.optional(v.string()),
+    // THE USER'S OWN AGENT IDENTITY (accountability axis). What this user
+    // declares their agent does, shown to counterparts + logged, never
+    // authorizing. `identityScopes` is the SET of capabilities (any
+    // combination); empty/absent = nothing declared. Issued by "self" (no CA
+    // network yet), so we don't store an issuer field. `identityRevocationRef`
+    // is optional — only set if the user hosts a revocation endpoint.
+    identityScopes: v.optional(
+      v.array(
+        v.union(
+          v.literal("read_only"),
+          v.literal("correspond"),
+          v.literal("transact"),
+          v.literal("administer"),
+        ),
+      ),
+    ),
+    identityRevocationRef: v.optional(v.string()),
   })
     .index("by_user", ["userId"])
     .index("by_inbox", ["agentmailInbox"])

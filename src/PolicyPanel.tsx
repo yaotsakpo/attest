@@ -102,6 +102,7 @@ export function PolicyPanel({
   return (
     <Drawer open={open} onClose={onClose} path="agent@attest ~ policy">
           <AgentConnection />
+          <AgentIdentityPanel />
           <GovernancePanel />
 
           <p className="drawer-intro">
@@ -355,6 +356,119 @@ function AgentConnection() {
       )}
 
       {note && <div className="agent-conn-note">{note}</div>}
+    </div>
+  );
+}
+
+// The user's OWN agent identity (accountability axis). What THEY declare their
+// agent does, shown to counterparts, never authorizing. Scope is a SET of
+// independent capabilities (checkboxes); issuer is "self" (no CA yet); the
+// revocation URL is optional.
+const SCOPE_OPTIONS = [
+  ["read_only", "Read", "reads messages, never acts"],
+  ["correspond", "Correspond", "reads and replies"],
+  ["transact", "Transact", "can move money or data, on approval"],
+  ["administer", "Administer", "full account actions"],
+] as const;
+type Scope = (typeof SCOPE_OPTIONS)[number][0];
+
+function AgentIdentityPanel() {
+  const identity = useQuery(api.profiles.myIdentity);
+  const save = useMutation(api.profiles.setIdentity);
+  const [scopes, setScopes] = useState<Scope[]>([]);
+  const [revocation, setRevocation] = useState("");
+  const [loaded, setLoaded] = useState(false);
+  const [flash, setFlash] = useState(false);
+
+  // hydrate once from the server value
+  if (identity && !loaded) {
+    setScopes(identity.scopes as Scope[]);
+    setRevocation(identity.revocationRef ?? "");
+    setLoaded(true);
+  }
+
+  const dirty =
+    !!identity &&
+    (scopes.length !== identity.scopes.length ||
+      !scopes.every((s) => identity.scopes.includes(s)) ||
+      revocation !== (identity.revocationRef ?? ""));
+
+  function toggle(s: Scope) {
+    setScopes((prev) =>
+      prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s],
+    );
+  }
+  async function onSave() {
+    await save({ scopes, revocationRef: revocation.trim() || null });
+    setFlash(true);
+    setTimeout(() => setFlash(false), 1500);
+  }
+
+  return (
+    <div className="agent-conn">
+      <div className="agent-conn-head">
+        <span className="agent-conn-label">Agent identity</span>
+        {identity && identity.scopes.length > 0 && (
+          <span className="status status-verified">
+            <span className="dot" /> declared
+          </span>
+        )}
+      </div>
+      <p className="agent-conn-hint" style={{ marginTop: 0 }}>
+        What your agent declares to the counterparts it talks to. Shown and
+        logged for accountability, never used to grant access. Tick nothing to
+        declare no identity.
+      </p>
+
+      {identity === undefined ? (
+        <Loading />
+      ) : (
+        <>
+          <div style={{ display: "grid", gap: 8, margin: "10px 0 14px" }}>
+            {SCOPE_OPTIONS.map(([value, label, hint]) => (
+              <label
+                key={value}
+                style={{ display: "flex", gap: 10, alignItems: "flex-start", cursor: "pointer" }}
+              >
+                <input
+                  type="checkbox"
+                  checked={scopes.includes(value)}
+                  onChange={() => toggle(value)}
+                  style={{ marginTop: 3 }}
+                />
+                <span style={{ fontSize: 13 }}>
+                  <strong>{label}</strong>{" "}
+                  <span className="dim">— {hint}</span>
+                </span>
+              </label>
+            ))}
+          </div>
+
+          <div style={{ fontSize: 13, marginBottom: 8 }}>
+            <span className="dim">Issued by </span>self{" "}
+            <span className="dim">(this agent vouches for itself)</span>
+          </div>
+
+          <label style={{ display: "block", fontSize: 13, marginBottom: 10 }}>
+            <span className="dim">Revocation URL (optional)</span>
+            <input
+              className="rule-input mono"
+              style={{ width: "100%", marginTop: 4 }}
+              placeholder="optional — only if you host a status endpoint"
+              value={revocation}
+              onChange={(e) => setRevocation(e.target.value)}
+            />
+          </label>
+
+          <button
+            className="btn btn-primary"
+            onClick={() => void onSave()}
+            disabled={!dirty}
+          >
+            {flash ? "Saved" : "Save identity"}
+          </button>
+        </>
+      )}
     </div>
   );
 }
