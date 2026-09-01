@@ -30,7 +30,7 @@ describe("pipeline per-agent continuity keying (spec §7)", () => {
       await ctx.db.insert("agentIdentities", {
         agentId: domain,
         ownerId: "owner_acme",
-        scope: "correspond",
+        scopes: ["correspond"],
         issuer: "self",
         issuedAt: 0,
         issuerSignature: "sig",

@@ -10,6 +10,10 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Doc } from "./_generated/dataModel";
 import { computeTrustScore, fromDomainOf } from "./lib/trustScore";
 import { gradeFor, type Grade } from "./lib/grade";
+import { resolveRevocation } from "./lib/revocationStatus";
+
+// Same TTL the pipeline uses to age a cached revocation status into "stale".
+const IDENTITY_TTL_MS = 15 * 60_000;
 
 // Record one observation of a sending domain into the trust registry. Called
 // from ingestInbound on every email. Upserts the domain row and recomputes its
@@ -172,14 +176,63 @@ export const listDomains = query({
       enrichTitle: v.optional(v.string()),
       enrichDescription: v.optional(v.string()),
       enrichedAt: v.optional(v.number()),
+      // AGENT IDENTITY (accountability axis) the counterpart declares, if any.
+      // Shown to the human; zero-authority (never widens what the agent may do).
+      // `identityRevocation` is the RESOLVED verdict a person reads: active /
+      // stale / revoked.
+      identityScopes: v.optional(
+        v.array(
+          v.union(
+            v.literal("read_only"),
+            v.literal("correspond"),
+            v.literal("transact"),
+            v.literal("administer"),
+          ),
+        ),
+      ),
+      identityIssuer: v.optional(v.string()),
+      identityRevocation: v.optional(
+        v.union(v.literal("active"), v.literal("stale"), v.literal("revoked")),
+      ),
     }),
   ),
-  handler: async (ctx): Promise<Doc<"domains">[]> => {
+  handler: async (ctx) => {
     const visible = await visibleDomainsForUser(ctx);
     const rows = await ctx.db.query("domains").take(500);
-    return rows
-      .filter((r) => visible === null || visible.has(r.domain))
-      .sort((a, b) => b.trustScore - a.trustScore);
+    const now = Date.now();
+    const enriched = await Promise.all(
+      rows
+        .filter((r) => visible === null || visible.has(r.domain))
+        .map(async (r) => {
+          // Identity is keyed by agentId == domain (same lookup the pipeline
+          // uses). Absent for most counterparts, present where one was declared.
+          const identity = await ctx.db
+            .query("agentIdentities")
+            .withIndex("by_agent", (q) => q.eq("agentId", r.domain))
+            .first();
+          // Always return the same shape (identity fields undefined when the
+          // counterpart declared none) so the row type is uniform.
+          const verdict = identity
+            ? resolveRevocation({
+                cachedStatus: identity.status,
+                statusCheckedAt: identity.statusCheckedAt,
+                now,
+                ttlMs: IDENTITY_TTL_MS,
+              })
+            : null;
+          return {
+            ...r,
+            identityScopes: identity?.scopes,
+            identityIssuer: identity?.issuer,
+            identityRevocation: verdict
+              ? verdict.verdict === "unknown"
+                ? ("stale" as const)
+                : verdict.verdict
+              : undefined,
+          };
+        }),
+    );
+    return enriched.sort((a, b) => b.trustScore - a.trustScore);
   },
 });
 

@@ -859,6 +859,37 @@ table.data.registry-cols {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+/* Declared agent identity: scope chip + resolved revocation state. */
+.identity-cell {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--t-xs);
+}
+.id-scope {
+  font-family: var(--mono);
+  color: var(--ink-2);
+}
+.id-rev {
+  font-family: var(--sans);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.id-rev-ok {
+  background: rgba(46, 160, 67, 0.14);
+  color: #2ea043;
+}
+.id-rev-warn {
+  background: rgba(210, 153, 34, 0.16);
+  color: #b8860b;
+}
+.id-rev-bad {
+  background: rgba(218, 54, 51, 0.16);
+  color: #da3633;
+}
 /* tighter cell padding inside the half-width column so 6 cols fit */
 .registry-cols td,
 .registry-cols th {

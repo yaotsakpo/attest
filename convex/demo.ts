@@ -202,6 +202,52 @@ export const reset = mutation({
 // The dashboard button target. Runs the scenarios through the real pipeline.
 // An ACTION because ingestInbound schedules extraction and we run several in
 // sequence; it derives the user via a helper query, then feeds each email in.
+// Declared agent identities for the demo counterparts (accountability axis).
+// Keyed by agentId == domain, the same key the registry + pipeline look up.
+// GLOBAL (not per-user) and upserted, so replaying the demo never duplicates.
+// One is left deliberately STALE (an old statusCheckedAt) so the registry shows
+// the "status stale" state a person needs to understand.
+const DEMO_IDENTITIES: Array<{
+  agentId: string;
+  scopes: Array<"read_only" | "correspond" | "transact" | "administer">;
+  issuer: string;
+  fresh: boolean;
+}> = [
+  // Real agents do several things at once — the reason scope is a SET.
+  { agentId: "greenhouse.io", scopes: ["read_only", "correspond"], issuer: "self", fresh: true },
+  { agentId: "lever.co", scopes: ["correspond"], issuer: "self", fresh: true },
+  { agentId: "acme.com", scopes: ["read_only", "correspond", "transact"], issuer: "self", fresh: false },
+];
+
+export const seedIdentitiesFor = internalMutation({
+  args: {},
+  returns: v.null(),
+  handler: async (ctx): Promise<null> => {
+    const now = Date.now();
+    for (const d of DEMO_IDENTITIES) {
+      const existing = await ctx.db
+        .query("agentIdentities")
+        .withIndex("by_agent", (q) => q.eq("agentId", d.agentId))
+        .first();
+      const fields = {
+        agentId: d.agentId,
+        ownerId: `owner:${d.agentId}`,
+        scopes: d.scopes,
+        issuer: d.issuer,
+        issuedAt: now,
+        issuerSignature: "demo", // display-only; the binding grants nothing
+        revocationRef: `https://${d.agentId}/agent/revocation`,
+        status: "active" as const,
+        // A stale cache (older than the 15m TTL) resolves to "status stale".
+        statusCheckedAt: d.fresh ? now : now - 30 * 60_000,
+      };
+      if (existing) await ctx.db.patch(existing._id, fields);
+      else await ctx.db.insert("agentIdentities", fields);
+    }
+    return null;
+  },
+});
+
 export const seed = action({
   args: {},
   returns: v.object({ seeded: v.number() }),
@@ -218,6 +264,10 @@ export const seed = action({
     // seed the policy so the gate has real rules to consult + the Agent drawer
     // shows rendered rules
     await ctx.runMutation(internal.demo.seedPolicyFor, { userId });
+
+    // declare identities for the demo counterparts so the registry's Identity
+    // column is populated (one stale, to show the revocation-freshness state)
+    await ctx.runMutation(internal.demo.seedIdentitiesFor, {});
 
     // feed each email through the REAL ingest pipeline. Unique msg ids keep it
     // idempotent; ingestInbound earns registry trust, detects hubs, and

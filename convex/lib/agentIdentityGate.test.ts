@@ -26,13 +26,13 @@ function baseAllow(over: Partial<DecideActionInput> = {}): DecideActionInput {
 }
 
 async function validIdentity(
-  scope: SignedIdentityFields["scope"] = "administer",
+  scopes: SignedIdentityFields["scopes"] = ["administer"],
 ): Promise<{ identity: AgentIdentity; keys: CryptoKeyPair }> {
   const keys = await generateIssuerKeypair();
   const fields: SignedIdentityFields = {
     agentId: "agent_known",
     ownerId: "owner_known",
-    scope,
+    scopes,
     issuer: "self",
     issuedAt: 1_700_000_000_000,
     revocationRef: "https://revoke/agent_known",
@@ -90,8 +90,8 @@ describe("zero-authority invariant (spec §2 / §8)", () => {
   it('scope "transact" does NOT permit a payment the user policy would hold', async () => {
     // An unauthorized payment always holds (no allow rule). A transact-scoped
     // identity must not change that.
-    const { identity } = await validIdentity("transact");
-    expect(identity.scope).toBe("transact");
+    const { identity } = await validIdentity(["transact"]);
+    expect(identity.scopes).toContain("transact");
     const d = decideAction(
       baseAllow({ text: "Please wire $5,000 to finalize.", rules: [] }),
     );

@@ -16,7 +16,7 @@ async function makeIdentity(
   const fields: SignedIdentityFields = {
     agentId: "agent_7f3a",
     ownerId: "owner_acme",
-    scope: "correspond",
+    scopes: ["correspond"],
     issuer: "self",
     issuedAt: 1_700_000_000_000,
     revocationRef: "https://revoke.example/agent_7f3a",
@@ -45,8 +45,8 @@ describe("agent identity: binding", () => {
   });
 
   it("altering scope invalidates the signature", async () => {
-    const { identity, keys } = await makeIdentity({ scope: "correspond" });
-    const tampered: AgentIdentity = { ...identity, scope: "administer" };
+    const { identity, keys } = await makeIdentity({ scopes: ["correspond"] });
+    const tampered: AgentIdentity = { ...identity, scopes: ["administer"] };
     expect(await verifyIdentityBinding(tampered, keys.publicKey)).toBe(false);
   });
 
@@ -84,7 +84,7 @@ describe("agent identity: field-boundary attack (canonical encoding)", () => {
     const a: SignedIdentityFields = {
       agentId: "x|y", // contains the delimiter
       ownerId: "z",
-      scope: "correspond",
+      scopes: ["correspond"],
       issuer: "self",
       issuedAt: 1,
       revocationRef: "r",
@@ -92,7 +92,7 @@ describe("agent identity: field-boundary attack (canonical encoding)", () => {
     const b: SignedIdentityFields = {
       agentId: "x",
       ownerId: "y|z", // delimiter shifted across the boundary
-      scope: "correspond",
+      scopes: ["correspond"],
       issuer: "self",
       issuedAt: 1,
       revocationRef: "r",
@@ -107,7 +107,7 @@ describe("agent identity: field-boundary attack (canonical encoding)", () => {
     const fieldsA: SignedIdentityFields = {
       agentId: "3:abcowner", // looks like "3:abc" + "owner" under a naive parser
       ownerId: "o",
-      scope: "correspond",
+      scopes: ["correspond"],
       issuer: "self",
       issuedAt: 1,
       revocationRef: "r",
@@ -116,7 +116,7 @@ describe("agent identity: field-boundary attack (canonical encoding)", () => {
     const crafted: AgentIdentity = {
       agentId: "3:abc",
       ownerId: "owner", // the "smuggled" portion moved into ownerId
-      scope: "correspond",
+      scopes: ["correspond"],
       issuer: "self",
       issuedAt: 1,
       revocationRef: "o",

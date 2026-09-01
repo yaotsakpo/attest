@@ -109,6 +109,7 @@ export function Registry() {
               <th className="rank">#</th>
               <th>Grade</th>
               {th("domain", "Domain")}
+              <th>Identity</th>
               {th("score", "Score", "num")}
               {th("sightings", "Verified", "num")}
               {th("lastSeen", "Last seen", "num")}
@@ -116,10 +117,10 @@ export function Registry() {
           </thead>
           <tbody>
             {domains === undefined ? (
-              <SkeletonRows cols={6} />
+              <SkeletonRows cols={7} />
             ) : rows.length === 0 ? (
               <tr>
-                <td className="empty" colSpan={6}>
+                <td className="empty" colSpan={7}>
                   {term
                     ? `No domains match “${q}”.`
                     : "No domains observed yet. Each sender that emails your agent earns a trust grade here."}
@@ -153,6 +154,13 @@ export function Registry() {
                         )}
                       </div>
                     </td>
+                    <td className="m">
+                      <IdentityCell
+                        scopes={d.identityScopes}
+                        issuer={d.identityIssuer}
+                        revocation={d.identityRevocation}
+                      />
+                    </td>
                     <td className="num">
                       <span className="score-cell">
                         <span className="score-bar">
@@ -182,5 +190,41 @@ export function Registry() {
         )}
       </ExpandablePanel>
     </section>
+  );
+}
+
+// The accountability axis, made visible: the identity a counterpart DECLARES
+// (scope + who vouches) and the resolved revocation state a person reads. Blank
+// when the counterpart declared no identity. Zero-authority — this is shown for
+// accountability, it never changes what the agent is allowed to do.
+function IdentityCell({
+  scopes,
+  issuer,
+  revocation,
+}: {
+  scopes?: Array<"read_only" | "correspond" | "transact" | "administer">;
+  issuer?: string;
+  revocation?: "active" | "stale" | "revoked";
+}) {
+  if (!scopes || scopes.length === 0) {
+    return <span className="dim" style={{ fontSize: 12 }}>—</span>;
+  }
+  const revClass =
+    revocation === "revoked"
+      ? "id-rev-bad"
+      : revocation === "stale"
+        ? "id-rev-warn"
+        : "id-rev-ok";
+  const revLabel =
+    revocation === "revoked"
+      ? "revoked"
+      : revocation === "stale"
+        ? "status stale"
+        : "active";
+  return (
+    <span className="identity-cell" title={`issued by ${issuer ?? "self"}`}>
+      <span className="id-scope">{scopes.join(" · ")}</span>
+      <span className={`id-rev ${revClass}`}>{revLabel}</span>
+    </span>
   );
 }

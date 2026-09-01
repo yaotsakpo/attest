@@ -157,11 +157,16 @@ export default defineSchema({
   agentIdentities: defineTable({
     agentId: v.string(), // stable, public, opaque. NOT derived from owner/address.
     ownerId: v.string(), // resolves to an accountable PRINCIPAL (org/role/person), opaque
-    scope: v.union(
-      v.literal("read_only"),
-      v.literal("correspond"),
-      v.literal("transact"),
-      v.literal("administer"),
+    // The SET of capabilities the identity declares (independent, any
+    // combination). Zero-authority: shown for accountability, never widens what
+    // the agent may do.
+    scopes: v.array(
+      v.union(
+        v.literal("read_only"),
+        v.literal("correspond"),
+        v.literal("transact"),
+        v.literal("administer"),
+      ),
     ),
     issuer: v.string(), // who attests the binding: "self" or a registry id
     issuedAt: v.number(),

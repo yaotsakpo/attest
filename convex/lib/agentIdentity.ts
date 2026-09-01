@@ -30,12 +30,25 @@ export type IdentityScope =
 export interface AgentIdentity {
   agentId: string; // stable, public, opaque. NOT derived from owner or address.
   ownerId: string; // resolves to an accountable PRINCIPAL (org/role/person), opaque
-  scope: IdentityScope; // DECLARED authority class. Descriptive, never enforcing.
+  scopes: IdentityScope[]; // DECLARED capabilities (a SET). Descriptive, never enforcing.
   issuer: string; // who attests the binding: "self" or a registry id
   issuedAt: number;
   revocationRef: string; // where current status is checked
   // issuerSignature covers the fields above; it grants nothing by itself.
   issuerSignature: string;
+}
+
+// Canonical order for the scope set, so the same capabilities always sign
+// identically regardless of the order they were declared in.
+const SCOPE_ORDER: IdentityScope[] = [
+  "read_only",
+  "correspond",
+  "transact",
+  "administer",
+];
+function canonicalScopes(scopes: IdentityScope[]): string {
+  const present = new Set(scopes);
+  return SCOPE_ORDER.filter((s) => present.has(s)).join(",");
 }
 
 // The fields the signature binds (everything except the signature itself).
@@ -55,7 +68,7 @@ export function canonicalIdentity(f: SignedIdentityFields): string {
   return [
     field(f.agentId),
     field(f.ownerId),
-    field(f.scope),
+    field(canonicalScopes(f.scopes)),
     field(f.issuer),
     field(f.issuedAt),
     field(f.revocationRef),
