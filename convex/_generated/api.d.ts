@@ -23,6 +23,7 @@ import type * as extract from "../extract.js";
 import type * as http from "../http.js";
 import type * as inbound from "../inbound.js";
 import type * as lib_agentIdentity from "../lib/agentIdentity.js";
+import type * as lib_agentScopes from "../lib/agentScopes.js";
 import type * as lib_continuity from "../lib/continuity.js";
 import type * as lib_continuityKey from "../lib/continuityKey.js";
 import type * as lib_continuityState from "../lib/continuityState.js";
@@ -68,6 +69,7 @@ declare const fullApi: ApiFromModules<{
   http: typeof http;
   inbound: typeof inbound;
   "lib/agentIdentity": typeof lib_agentIdentity;
+  "lib/agentScopes": typeof lib_agentScopes;
   "lib/continuity": typeof lib_continuity;
   "lib/continuityKey": typeof lib_continuityKey;
   "lib/continuityState": typeof lib_continuityState;

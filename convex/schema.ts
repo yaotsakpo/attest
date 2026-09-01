@@ -30,6 +30,9 @@ export default defineSchema({
         ),
       ),
     ),
+    identityOwner: v.optional(v.string()), // who it WORKS FOR (org/person/role)
+    identityContact: v.optional(v.string()), // operator email
+    identityHomepage: v.optional(v.string()), // optional link
     identityRevocationRef: v.optional(v.string()),
   })
     .index("by_user", ["userId"])

@@ -45,20 +45,40 @@ export const myIdentity = query({
   args: {},
   returns: v.object({
     scopes: v.array(scopeValidator),
+    owner: v.union(v.string(), v.null()),
+    contact: v.union(v.string(), v.null()),
+    homepage: v.union(v.string(), v.null()),
     revocationRef: v.union(v.string(), v.null()),
   }),
   handler: async (
     ctx,
-  ): Promise<{ scopes: AgentScope[]; revocationRef: string | null }> => {
+  ): Promise<{
+    scopes: AgentScope[];
+    owner: string | null;
+    contact: string | null;
+    homepage: string | null;
+    revocationRef: string | null;
+  }> => {
+    const empty = {
+      scopes: [] as AgentScope[],
+      owner: null,
+      contact: null,
+      homepage: null,
+      revocationRef: null,
+    };
     const userId = await getAuthUserId(ctx);
-    if (!userId) return { scopes: [], revocationRef: null };
+    if (!userId) return empty;
     const p = await ctx.db
       .query("profiles")
       .withIndex("by_user", (q) => q.eq("userId", userId))
       .first();
+    if (!p) return empty;
     return {
-      scopes: (p?.identityScopes ?? []) as AgentScope[],
-      revocationRef: p?.identityRevocationRef ?? null,
+      scopes: (p.identityScopes ?? []) as AgentScope[],
+      owner: p.identityOwner ?? null,
+      contact: p.identityContact ?? null,
+      homepage: p.identityHomepage ?? null,
+      revocationRef: p.identityRevocationRef ?? null,
     };
   },
 });
@@ -70,6 +90,9 @@ export const myIdentity = query({
 export const setIdentity = mutation({
   args: {
     scopes: v.array(scopeValidator),
+    owner: v.union(v.string(), v.null()),
+    contact: v.union(v.string(), v.null()),
+    homepage: v.union(v.string(), v.null()),
     revocationRef: v.union(v.string(), v.null()),
   },
   returns: v.null(),
@@ -83,10 +106,21 @@ export const setIdentity = mutation({
     if (!p) throw new Error("connect an agent inbox first");
     // normalizeScopes also guards against anything the validator somehow lets by
     const scopes = normalizeScopes(args.scopes);
-    const ref = args.revocationRef?.trim();
+    // empty string clears a field (stored as undefined)
+    const clean = (s: string | null) => {
+      const t = s?.trim();
+      return t ? t : undefined;
+    };
+    const home = clean(args.homepage);
+    if (home && !/^https:\/\//i.test(home)) {
+      throw new Error("homepage must be an https:// URL");
+    }
     await ctx.db.patch(p._id, {
       identityScopes: scopes,
-      identityRevocationRef: ref ? ref : undefined,
+      identityOwner: clean(args.owner),
+      identityContact: clean(args.contact),
+      identityHomepage: home,
+      identityRevocationRef: clean(args.revocationRef),
     });
     return null;
   },

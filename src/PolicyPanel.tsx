@@ -376,6 +376,9 @@ function AgentIdentityPanel() {
   const identity = useQuery(api.profiles.myIdentity);
   const save = useMutation(api.profiles.setIdentity);
   const [scopes, setScopes] = useState<Scope[]>([]);
+  const [owner, setOwner] = useState("");
+  const [contact, setContact] = useState("");
+  const [homepage, setHomepage] = useState("");
   const [revocation, setRevocation] = useState("");
   const [loaded, setLoaded] = useState(false);
   const [flash, setFlash] = useState(false);
@@ -383,6 +386,9 @@ function AgentIdentityPanel() {
   // hydrate once from the server value
   if (identity && !loaded) {
     setScopes(identity.scopes as Scope[]);
+    setOwner(identity.owner ?? "");
+    setContact(identity.contact ?? "");
+    setHomepage(identity.homepage ?? "");
     setRevocation(identity.revocationRef ?? "");
     setLoaded(true);
   }
@@ -391,6 +397,9 @@ function AgentIdentityPanel() {
     !!identity &&
     (scopes.length !== identity.scopes.length ||
       !scopes.every((s) => identity.scopes.includes(s)) ||
+      owner !== (identity.owner ?? "") ||
+      contact !== (identity.contact ?? "") ||
+      homepage !== (identity.homepage ?? "") ||
       revocation !== (identity.revocationRef ?? ""));
 
   function toggle(s: Scope) {
@@ -399,7 +408,13 @@ function AgentIdentityPanel() {
     );
   }
   async function onSave() {
-    await save({ scopes, revocationRef: revocation.trim() || null });
+    await save({
+      scopes,
+      owner: owner.trim() || null,
+      contact: contact.trim() || null,
+      homepage: homepage.trim() || null,
+      revocationRef: revocation.trim() || null,
+    });
     setFlash(true);
     setTimeout(() => setFlash(false), 1500);
   }
@@ -424,7 +439,31 @@ function AgentIdentityPanel() {
         <Loading />
       ) : (
         <>
-          <div style={{ display: "grid", gap: 8, margin: "10px 0 14px" }}>
+          <label style={{ display: "block", fontSize: 13, marginTop: 10 }}>
+            <span className="dim">Works for</span>
+            <input
+              className="rule-input"
+              style={{ width: "100%", marginTop: 4 }}
+              placeholder="who this agent acts for — an org, person, or role"
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+            />
+          </label>
+          <label style={{ display: "block", fontSize: 13, marginTop: 10 }}>
+            <span className="dim">Operator contact</span>
+            <input
+              className="rule-input"
+              style={{ width: "100%", marginTop: 4 }}
+              placeholder="email a counterpart reaches if it misbehaves"
+              value={contact}
+              onChange={(e) => setContact(e.target.value)}
+            />
+          </label>
+
+          <div style={{ fontSize: 13, margin: "16px 0 4px" }} className="dim">
+            What this agent does
+          </div>
+          <div style={{ display: "grid", gap: 8, margin: "4px 0 14px" }}>
             {SCOPE_OPTIONS.map(([value, label, hint]) => (
               <label
                 key={value}
@@ -443,6 +482,17 @@ function AgentIdentityPanel() {
               </label>
             ))}
           </div>
+
+          <label style={{ display: "block", fontSize: 13, marginBottom: 10 }}>
+            <span className="dim">Homepage (optional)</span>
+            <input
+              className="rule-input mono"
+              style={{ width: "100%", marginTop: 4 }}
+              placeholder="optional — https://… where a counterpart learns what this agent is"
+              value={homepage}
+              onChange={(e) => setHomepage(e.target.value)}
+            />
+          </label>
 
           <div style={{ fontSize: 13, marginBottom: 8 }}>
             <span className="dim">Issued by </span>self{" "}
